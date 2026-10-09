@@ -27,3 +27,7 @@ class AnalysisResult(BaseModel):
     matched_scenario_name: Optional[str] = None
     summary: str
     extracted_urls: List[str] = []
+    is_geolocated: bool = False
+    location_name: Optional[str] = None
+    coordinates: Optional[List[float]] = None  # [lat, lon]
+    threat_category: Optional[str] = None       # "war_conflict", "terrorism", "state_leak", "critical_infra", "cyber_ops"

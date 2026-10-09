@@ -17,7 +17,7 @@ async def read_dashboard(
 
     # Tool definitions with role-tailored descriptions
     tools = [
-        {
+        {\
             "id": "feed_monitor",
             "title": "Web / Social Media Feed Monitoring",
             "url": "/tools/feed_monitor",
@@ -25,7 +25,7 @@ async def read_dashboard(
             "badge_class": "badge-status-live",
             "description": "Continuous real-time threat intelligence monitoring and scenario-based alerting across digital networks and GIS maps."
         },
-        {
+        {\
             "id": "profile_auth",
             "title": "Online Account Authenticity Checker",
             "url": "/tools/profile_auth",
@@ -37,7 +37,7 @@ async def read_dashboard(
                 "OSINT web search operator suite: runs advanced Google dorks and public index queries to discover digital footprints and verify account legitimacy within legal compliance boundaries."
             )
         },
-        {
+        {\
             "id": "logs_analyze",
             "title": "AI Log & Network Forensic Analyzer",
             "url": "/tools/logs_analyze",
@@ -45,13 +45,13 @@ async def read_dashboard(
             "badge_class": "badge-status-live",
             "description": "Autonomous multi-source ingestion and forensic analysis of Syslog, Web, Firewall, and Windows Event streams with AI incident reconstruction."
         },
-        {
+        {\
             "id": "legal_contract",
             "title": "Legal Contract & Document Intelligence",
-            "url": "#",
-            "badge": "Planned",
-            "badge_class": "badge-pending",
-            "description": "AI-powered analysis of contracts and legal documents to detect hidden loophole clauses and exploitative language."
+            "url": "/tools/contract_intel",
+            "badge": "Active",
+            "badge_class": "badge-status-live",
+            "description": "Autonomous contract forensic engine: discovers hidden loophole clauses, auto-renewal traps, early termination liabilities, and financial commitments with verbatim hallucination defense."
         }
     ]
 

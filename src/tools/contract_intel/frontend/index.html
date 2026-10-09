@@ -1,0 +1,711 @@
+{% extends "shared/frontend/base.html" %}
+
+{% block title %}Contract & Legal Intelligence - Threat Netra{% endblock %}
+
+{% block content %}
+<div class="dashboard-user-bar">
+    <div>
+        <span class="eyebrow" style="margin-bottom: 0.25rem;">MODULE // LEGAL FORENSICS &amp; DOCUMENT AUDITING</span>
+        <h2 style="margin: 0; font-size: 1.5rem; letter-spacing: -0.01em;">Legal Contract &amp; Document Intelligence</h2>
+        <div class="mono" style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem;">
+            OPERATIONAL CLEARANCE: {{ user.role | upper }} &bull; VERBATIM HALLUCINATION DEFENSE &bull; FINANCIAL LIABILITY AUDITING
+        </div>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <span class="badge badge-status-live" id="auditEngineBadge">FORENSIC ENGINE // ARMED</span>
+        <a href="/dashboard" class="btn btn-secondary btn-sm">&larr; Return to Dashboard</a>
+    </div>
+</div>
+
+<!-- SUB-NAVIGATION TABS -->
+<div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.5rem; flex-wrap: wrap;">
+    <button type="button" id="tabAnalyzeBtn" class="btn btn-sm btn-primary" style="border-bottom: 2px solid var(--accent); border-radius: 0;">
+        Contract Forensic Audit
+    </button>
+    <button type="button" id="tabAskBtn" class="btn btn-sm btn-subtle" style="border-radius: 0;">
+        Interactive Contract Q&amp;A
+    </button>
+    <button type="button" id="tabCompareBtn" class="btn btn-sm btn-subtle" style="border-radius: 0;">
+        Dual Agreement Comparison
+    </button>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 1: CONTRACT FORENSIC AUDIT -->
+<!-- ========================================================================= -->
+<div id="tabAnalyzeContent">
+    <div style="display: grid; grid-template-columns: 420px 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <!-- LEFT COLUMN: INGESTION CONTROLS -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                    <span class="eyebrow" style="margin: 0;">INGESTION VECTOR</span>
+                    <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">PDF / TEXT STREAM</span>
+                </div>
+
+                <!-- PRESET CONTRACT SELECTOR -->
+                <div style="margin-bottom: 1rem;">
+                    <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.4rem;">PRE-LOADED CONTRACT SAMPLES</label>
+                    <div style="display: flex; flex-direction: column; gap: 0.4rem;">
+                        {% for s in samples %}
+                        <button type="button" class="btn btn-subtle btn-sm load-sample-btn" data-id="{{ s.id }}" style="text-align: left; font-size: 0.75rem; padding: 0.45rem 0.65rem; border: 1px solid var(--border);">
+                            📁 {{ s.name }}
+                        </button>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- UPLOAD OR PASTE TOGGLE -->
+                <div style="margin-bottom: 1rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                        <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary);">UPLOAD PDF OR PASTE TEXT</label>
+                        <input type="file" id="pdfFileInput" accept=".pdf,.txt" style="display: none;" />
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="document.getElementById('pdfFileInput').click()" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">
+                            Browse File (.pdf)
+                        </button>
+                    </div>
+                    <div id="fileUploadNotice" class="mono" style="display: none; font-size: 0.75rem; color: var(--accent); margin-bottom: 0.5rem; background: #000; padding: 0.4rem; border: 1px solid var(--border);"></div>
+                    <textarea id="contractTextInput" rows="12" class="mono" placeholder="Paste legal contract text here with optional [[PAGE X]] markers, or load a preset sample above..." style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.75rem; font-size: 0.75rem; line-height: 1.45; resize: vertical; box-sizing: border-box;"></textarea>
+                </div>
+
+                <div style="margin-bottom: 1rem;">
+                    <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">AUDIT INFERENCE ENGINE</label>
+                    <select id="intelProvider" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.55rem; font-family: var(--font-sans); font-size: 0.8125rem;">
+                        <option value="auto">Auto (Groq / Gemma)</option>
+                        <option value="groq">Groq Cloud (Fast)</option>
+                        <option value="gemma">Gemma (Google AI Studio)</option>
+                    </select>
+                </div>
+
+                <button type="button" id="runAnalyzeBtn" class="btn btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600; letter-spacing: 0.04em;">
+                    RUN FORENSIC CONTRACT AUDIT
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: AUDIT REPORT & METRICS -->
+        <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+            
+            <!-- STATUS / HUD SUMMARY BAR -->
+            <div style="background: #0A0A0A; border: 1px solid var(--border); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                <div class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
+                    <div>DOCUMENT: <span id="metaDocName" style="color: var(--text-primary); font-weight: 600;">None</span></div>
+                    <div>HIGH RISKS: <span id="metaHighRiskCount" style="color: var(--status-error); font-weight: 600;">0</span></div>
+                    <div>MEDIUM RISKS: <span id="metaMedRiskCount" style="color: var(--status-warning); font-weight: 600;">0</span></div>
+                    <div>VERBATIM PROOF: <span id="metaProofRate" style="color: var(--status-success); font-weight: 600;">100%</span></div>
+                </div>
+                <div id="analyzeLoadingSpinner" style="display: none; align-items: center; gap: 0.5rem;" class="mono">
+                    <span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); animation: pulse 1s infinite;"></span>
+                    <span style="font-size: 0.75rem; color: var(--accent);" id="analyzeLoadingText">AUDITING CLAUSES &amp; LIABILITIES...</span>
+                </div>
+            </div>
+
+            <!-- FINANCIAL COST & LIABILITY MODEL CARD -->
+            <div class="tool-card" id="costModelCard" style="display: none; border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="eyebrow" style="margin: 0; color: var(--accent);">FINANCIAL LIABILITY MODEL</span>
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">TCO AUDIT</span>
+                    </div>
+                    <span class="badge" style="background: rgba(76, 141, 255, 0.15); border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-mono); font-size: 0.7rem;">CALCULATED METRICS</span>
+                </div>
+                <div id="costModelLinesList" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 0.75rem;"></div>
+            </div>
+
+            <!-- CLAUSE FINDINGS STREAM -->
+            <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                    <div>
+                        <span class="eyebrow" style="margin: 0;">FORENSIC CLAUSE FINDINGS</span>
+                        <h3 style="margin: 0.2rem 0 0 0; font-size: 1.1rem;">Identified Legal Traps &amp; Risk Vectors</h3>
+                    </div>
+                    <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="findingCountBadge">0 CLAUSES ISOLATED</span>
+                </div>
+
+                <div id="findingsContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+                    <div style="text-align: center; padding: 3.5rem 1.5rem; border: 1px dashed var(--border); background: #000; color: var(--text-muted);" id="emptyFindingsState">
+                        <div class="mono" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.35rem;">AWAITING CONTRACT INGESTION</div>
+                        <div style="font-size: 0.8rem;">Select a preset contract sample or paste/upload an agreement to extract hidden clauses and financial liabilities.</div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 2: INTERACTIVE CONTRACT Q&A -->
+<!-- ========================================================================= -->
+<div id="tabAskContent" style="display: none;">
+    <div style="max-width: 860px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                <div>
+                    <span class="eyebrow" style="margin: 0; color: var(--accent);">TARGETED INQUIRY</span>
+                    <h3 style="margin: 0.2rem 0 0 0; font-size: 1.15rem;">Ask Specific Questions Against the Agreement</h3>
+                </div>
+                <span class="badge badge-normal" id="qaDocStateBadge">DOCUMENT // LOADED</span>
+            </div>
+
+            <!-- QUICK SUGGESTED QUESTIONS -->
+            <div style="margin-bottom: 1rem;">
+                <span class="mono" style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-bottom: 0.4rem;">TACTICAL QUESTIONS:</span>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                    <button type="button" class="btn btn-subtle btn-sm quick-q-btn" data-q="What is the early termination fee if I cancel early?" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;">
+                        Exit Penalty / Early Termination?
+                    </button>
+                    <button type="button" class="btn btn-subtle btn-sm quick-q-btn" data-q="Can the vendor increase prices or renewal fees without my consent?" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;">
+                        Unilateral Price Increases?
+                    </button>
+                    <button type="button" class="btn btn-subtle btn-sm quick-q-btn" data-q="How many days advance notice is required to cancel?" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;">
+                        Cancellation Notice Deadline?
+                    </button>
+                    <button type="button" class="btn btn-subtle btn-sm quick-q-btn" data-q="What happens to our proprietary data and telemetry upon termination?" style="font-size: 0.72rem; padding: 0.25rem 0.5rem;">
+                        Data Ownership &amp; Export?
+                    </button>
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+                <input type="text" id="askQuestionInput" placeholder="e.g. Can the provider terminate for convenience without refund?" class="mono" style="flex: 1; background: #000; border: 1px solid var(--border); color: #FFF; padding: 0.65rem 0.85rem; font-size: 0.8125rem;" />
+                <button type="button" id="askSubmitBtn" class="btn btn-primary" style="padding: 0.65rem 1.25rem; font-weight: 600;">
+                    SUBMIT INQUIRY
+                </button>
+            </div>
+
+            <div id="qaLoadingIndicator" style="display: none; align-items: center; gap: 0.5rem; margin-bottom: 1rem;" class="mono">
+                <span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); animation: pulse 1s infinite;"></span>
+                <span style="font-size: 0.75rem; color: var(--accent);">AUDITING CLAUSE PASSAGES FOR DIRECT CITATIONS...</span>
+            </div>
+
+            <!-- Q&A ANSWER CARD -->
+            <div id="qaAnswerCard" style="display: none; background: #000; border: 1px solid var(--border); padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span class="eyebrow" style="margin: 0; color: var(--status-success);">FACTUAL ASSESSMENT</span>
+                    <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);" id="qaCitationsBadge">1 CITATION ATTACHED</span>
+                </div>
+                <div id="qaAnswerText" style="font-size: 0.875rem; color: var(--text-primary); line-height: 1.55; margin-bottom: 1rem;"></div>
+                
+                <div id="qaCitationsContainer" style="border-top: 1px solid var(--border); padding-top: 0.75rem;">
+                    <span class="mono" style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">VERBATIM DOCUMENT CITATIONS:</span>
+                    <div id="qaCitationsList" style="display: flex; flex-direction: column; gap: 0.4rem;"></div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+</div>
+
+<!-- ========================================================================= -->
+<!-- TAB 3: DUAL AGREEMENT COMPARISON -->
+<!-- ========================================================================= -->
+<div id="tabCompareContent" style="display: none;">
+    <div style="max-width: 1040px; margin: 0 auto; display: flex; flex-direction: column; gap: 1.5rem; margin-bottom: 2rem;">
+        
+        <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                <div>
+                    <span class="eyebrow" style="margin: 0;">DUAL AGREEMENT FORENSICS</span>
+                    <h3 style="margin: 0.2rem 0 0 0; font-size: 1.15rem;">Side-by-Side Term &amp; Liability Diff</h3>
+                </div>
+                <button type="button" id="loadPresetCompareBtn" class="btn btn-secondary btn-sm" style="font-size: 0.75rem;">
+                    ⚡ Load Plan A (Restrictive) vs Plan B (Flexible)
+                </button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div>
+                    <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">CONTRACT A (TITLE / TEXT)</label>
+                    <input type="text" id="compareNameA" value="StreamNova Plan A" class="mono" style="width: 100%; background: #000; border: 1px solid var(--border); color: #FFF; padding: 0.4rem 0.6rem; font-size: 0.75rem; margin-bottom: 0.4rem; box-sizing: border-box;" />
+                    <textarea id="compareTextA" rows="8" class="mono" placeholder="Paste Contract A text here..." style="width: 100%; background: #000; border: 1px solid var(--border); color: #DDD; padding: 0.6rem; font-size: 0.75rem; resize: vertical; box-sizing: border-box;"></textarea>
+                </div>
+                <div>
+                    <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">CONTRACT B (TITLE / TEXT)</label>
+                    <input type="text" id="compareNameB" value="ClearConnect Plan B" class="mono" style="width: 100%; background: #000; border: 1px solid var(--border); color: #FFF; padding: 0.4rem 0.6rem; font-size: 0.75rem; margin-bottom: 0.4rem; box-sizing: border-box;" />
+                    <textarea id="compareTextB" rows="8" class="mono" placeholder="Paste Contract B text here..." style="width: 100%; background: #000; border: 1px solid var(--border); color: #DDD; padding: 0.6rem; font-size: 0.75rem; resize: vertical; box-sizing: border-box;"></textarea>
+                </div>
+            </div>
+
+            <button type="button" id="runCompareBtn" class="btn btn-primary" style="width: 100%; padding: 0.65rem; font-weight: 600;">
+                RUN SIDE-BY-SIDE CONTRACT COMPARISON
+            </button>
+        </div>
+
+        <div id="compareLoadingIndicator" style="display: none; align-items: center; justify-content: center; gap: 0.5rem; padding: 2rem;" class="mono">
+            <span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); animation: pulse 1s infinite;"></span>
+            <span style="font-size: 0.8rem; color: var(--accent);">EXTRACTING STRUCTURED TERMS &amp; EVALUATING DIFFERENCES...</span>
+        </div>
+
+        <!-- COMPARISON RESULTS VIEW -->
+        <div id="compareResultsArea" style="display: none; flex-direction: column; gap: 1.5rem;">
+            <!-- VERDICT CARD -->
+            <div class="tool-card" style="border: 1px solid var(--accent); background: #06090D; padding: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                    <span class="eyebrow" style="margin: 0; color: var(--accent);">STRATEGIC RISK VERDICT</span>
+                    <span class="badge" style="background: rgba(76, 141, 255, 0.15); border: 1px solid var(--accent); color: var(--accent); font-family: var(--font-mono); font-size: 0.7rem;">TRADE-OFF MATRIX</span>
+                </div>
+                <div id="compareVerdictText" style="font-size: 0.875rem; color: #FFF; line-height: 1.55;"></div>
+            </div>
+
+            <!-- COMPARISON DIFF TABLE -->
+            <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem; overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
+                    <thead>
+                        <tr style="border-bottom: 1px solid var(--border); background: #000;" class="mono">
+                            <th style="padding: 0.75rem; color: var(--text-secondary); width: 220px;">TERM / COVENANT</th>
+                            <th style="padding: 0.75rem; color: var(--text-primary);" id="thCompareNameA">CONTRACT A</th>
+                            <th style="padding: 0.75rem; color: var(--text-primary);" id="thCompareNameB">CONTRACT B</th>
+                            <th style="padding: 0.75rem; color: var(--text-secondary); width: 100px; text-align: center;">VARIANCE</th>
+                        </tr>
+                    </thead>
+                    <tbody id="compareTableBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let currentDocumentSha256 = null;
+
+    // Tab buttons & contents
+    const tabAnalyzeBtn = document.getElementById('tabAnalyzeBtn');
+    const tabAskBtn = document.getElementById('tabAskBtn');
+    const tabCompareBtn = document.getElementById('tabCompareBtn');
+    
+    const tabAnalyzeContent = document.getElementById('tabAnalyzeContent');
+    const tabAskContent = document.getElementById('tabAskContent');
+    const tabCompareContent = document.getElementById('tabCompareContent');
+
+    function switchTab(activeBtn, activeContent) {
+        [tabAnalyzeBtn, tabAskBtn, tabCompareBtn].forEach(b => {
+            b.classList.remove('btn-primary');
+            b.classList.add('btn-subtle');
+            b.style.borderBottom = 'none';
+        });
+        [tabAnalyzeContent, tabAskContent, tabCompareContent].forEach(c => c.style.display = 'none');
+
+        activeBtn.classList.remove('btn-subtle');
+        activeBtn.classList.add('btn-primary');
+        activeBtn.style.borderBottom = '2px solid var(--accent)';
+        activeContent.style.display = 'block';
+    }
+
+    tabAnalyzeBtn.addEventListener('click', () => switchTab(tabAnalyzeBtn, tabAnalyzeContent));
+    tabAskBtn.addEventListener('click', () => switchTab(tabAskBtn, tabAskContent));
+    tabCompareBtn.addEventListener('click', () => switchTab(tabCompareBtn, tabCompareContent));
+
+    // Analyze Elements
+    const contractTextInput = document.getElementById('contractTextInput');
+    const pdfFileInput = document.getElementById('pdfFileInput');
+    const fileUploadNotice = document.getElementById('fileUploadNotice');
+    const intelProvider = document.getElementById('intelProvider');
+    const runAnalyzeBtn = document.getElementById('runAnalyzeBtn');
+    const analyzeLoadingSpinner = document.getElementById('analyzeLoadingSpinner');
+    
+    const metaDocName = document.getElementById('metaDocName');
+    const metaHighRiskCount = document.getElementById('metaHighRiskCount');
+    const metaMedRiskCount = document.getElementById('metaMedRiskCount');
+    const metaProofRate = document.getElementById('metaProofRate');
+    
+    const costModelCard = document.getElementById('costModelCard');
+    const costModelLinesList = document.getElementById('costModelLinesList');
+    const findingsContainer = document.getElementById('findingsContainer');
+    const findingCountBadge = document.getElementById('findingCountBadge');
+
+    // Preset Sample Loading
+    document.querySelectorAll('.load-sample-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const sampleId = btn.getAttribute('data-id');
+            try {
+                const res = await fetch(`/tools/contract_intel/api/sample/${sampleId}`);
+                if (!res.ok) throw new Error("Could not load sample");
+                const data = await res.json();
+                contractTextInput.value = data.text;
+                metaDocName.innerText = data.name;
+                fileUploadNotice.style.display = 'block';
+                fileUploadNotice.innerHTML = `Loaded sample: <strong>${data.name}</strong>`;
+                // Trigger analysis
+                triggerAnalysis(data.text, data.name);
+            } catch (err) {
+                alert("Failed to load sample: " + err.message);
+            }
+        });
+    });
+
+    // File input handler
+    pdfFileInput.addEventListener('change', async () => {
+        const file = pdfFileInput.files[0];
+        if (!file) return;
+
+        fileUploadNotice.style.display = 'block';
+        fileUploadNotice.innerText = `Selected file: ${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+        metaDocName.innerText = file.name;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('provider', intelProvider.value);
+
+        analyzeLoadingSpinner.style.display = 'flex';
+        findingsContainer.innerHTML = '';
+
+        try {
+            const res = await fetch('/tools/contract_intel/api/upload', {
+                method: 'POST',
+                body: formData
+            });
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Upload failed with status ${res.status}`);
+            }
+            const data = await res.json();
+            renderAnalysisResult(data);
+        } catch (e) {
+            findingsContainer.innerHTML = `
+                <div style="background: #150606; border: 1px solid var(--status-error); padding: 1.25rem; color: #FFF;">
+                    <div class="mono" style="color: var(--status-error); font-size: 0.8rem;">[EXCEPTION // PARSING ERROR]</div>
+                    <div style="font-size: 0.8125rem; margin-top: 0.25rem;">${escapeHtml(e.message)}</div>
+                </div>
+            `;
+        } finally {
+            analyzeLoadingSpinner.style.display = 'none';
+        }
+    });
+
+    // Direct Analysis Trigger
+    runAnalyzeBtn.addEventListener('click', () => {
+        const text = contractTextInput.value.trim();
+        if (!text) {
+            alert("Please paste contract text or select a preset sample.");
+            return;
+        }
+        triggerAnalysis(text, metaDocName.innerText !== 'None' ? metaDocName.innerText : 'Pasted Agreement');
+    });
+
+    async function triggerAnalysis(text, docName) {
+        analyzeLoadingSpinner.style.display = 'flex';
+        findingsContainer.innerHTML = '';
+        metaDocName.innerText = docName;
+
+        try {
+            const res = await fetch('/tools/contract_intel/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    raw_text: text,
+                    doc_name: docName,
+                    provider: intelProvider.value
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Server error HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            renderAnalysisResult(data);
+        } catch (e) {
+            findingsContainer.innerHTML = `
+                <div style="background: #150606; border: 1px solid var(--status-error); padding: 1.25rem; color: #FFF;">
+                    <div class="mono" style="color: var(--status-error); font-size: 0.8rem;">[EXCEPTION // AUDIT FAILURE]</div>
+                    <div style="font-size: 0.8125rem; margin-top: 0.25rem;">${escapeHtml(e.message)}</div>
+                </div>
+            `;
+        } finally {
+            analyzeLoadingSpinner.style.display = 'none';
+        }
+    }
+
+    function renderAnalysisResult(data) {
+        currentDocumentSha256 = data.document_meta ? data.document_meta.sha256 : null;
+
+        const findings = data.findings || [];
+        const costs = data.cost_model || [];
+        const discarded = data.discarded_findings || [];
+
+        // Count severities
+        let highCount = 0;
+        let medCount = 0;
+        findings.forEach(f => {
+            if (f.severity === 'high') highCount++;
+            else if (f.severity === 'medium') medCount++;
+        });
+
+        metaHighRiskCount.innerText = highCount;
+        metaMedRiskCount.innerText = medCount;
+        findingCountBadge.innerText = `${findings.length} CLAUSES AUDITED`;
+
+        const totalClauses = findings.length + discarded.length;
+        const proofPercent = totalClauses > 0 ? Math.round((findings.length / totalClauses) * 100) : 100;
+        metaProofRate.innerText = `${proofPercent}% VERIFIED`;
+
+        // Render Financial Cost Model
+        if (costs.length > 0) {
+            costModelCard.style.display = 'block';
+            costModelLinesList.innerHTML = '';
+            costs.forEach(c => {
+                const div = document.createElement('div');
+                div.style.background = '#000';
+                div.style.border = '1px solid var(--border)';
+                div.style.padding = '0.85rem';
+                div.innerHTML = `
+                    <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase;" class="mono">${escapeHtml(c.label)}</div>
+                    <div style="font-size: 1.25rem; font-weight: 700; color: #FFF; margin: 0.25rem 0;" class="mono">
+                        ${c.formatted_amount ? escapeHtml(c.formatted_amount) : (c.missing_reason ? '<span style="font-size:0.75rem; color:var(--text-muted); font-weight:normal;">' + escapeHtml(c.missing_reason) + '</span>' : 'N/A')}
+                    </div>
+                    <div style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35;" class="mono">${escapeHtml(c.formula_string)}</div>
+                `;
+                costModelLinesList.appendChild(div);
+            });
+        } else {
+            costModelCard.style.display = 'none';
+        }
+
+        // Render Findings
+        if (findings.length === 0) {
+            findingsContainer.innerHTML = `
+                <div style="text-align: center; padding: 2.5rem; background: #000; border: 1px dashed var(--border); color: var(--text-muted);" class="mono">
+                    NO HIGH-RISK CLAUSES OR RESTRICTIVE TRAPS DETECTED IN THIS DOCUMENT
+                </div>
+            `;
+            return;
+        }
+
+        findingsContainer.innerHTML = '';
+        findings.forEach(f => {
+            const isHigh = f.severity === 'high';
+            const isMed = f.severity === 'medium';
+            const sevColor = isHigh ? 'var(--status-error)' : (isMed ? 'var(--status-warning)' : 'var(--text-secondary)');
+            const sevBg = isHigh ? 'rgba(248,81,73,0.1)' : (isMed ? 'rgba(210,153,34,0.1)' : 'rgba(255,255,255,0.05)');
+
+            const card = document.createElement('div');
+            card.style.background = '#000';
+            card.style.border = `1px solid ${isHigh ? 'var(--status-error)' : (isMed ? '#5A3D10' : 'var(--border)')}`;
+            card.style.padding = '1.25rem';
+
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                        <span class="badge" style="background: ${sevBg}; border: 1px solid ${sevColor}; color: ${sevColor}; font-family: var(--font-mono); font-size: 0.68rem; text-transform: uppercase;">
+                            ${escapeHtml(f.severity)} RISK // ${escapeHtml(f.category)}
+                        </span>
+                        <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-primary); font-weight: 600;">${escapeHtml(f.title)}</h4>
+                    </div>
+                    <div class="mono" style="font-size: 0.7rem; color: var(--status-success); background: rgba(63,185,80,0.1); border: 1px solid var(--status-success); padding: 0.15rem 0.45rem;">
+                        ✓ VERBATIM EVIDENCE // PAGE ${f.page}
+                    </div>
+                </div>
+
+                <div style="background: #060606; border-left: 2px solid ${sevColor}; padding: 0.65rem 0.85rem; margin-bottom: 0.75rem;">
+                    <span class="mono" style="font-size: 0.65rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">VERBATIM DOCUMENT PASSAGE:</span>
+                    <div class="mono" style="font-size: 0.76rem; color: #FFF; line-height: 1.45; font-style: italic;">"${escapeHtml(f.source_text)}"</div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; font-size: 0.8rem; line-height: 1.45;">
+                    <div>
+                        <span class="mono" style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">PLAIN-LANGUAGE EXPLANATION:</span>
+                        <div style="color: var(--text-secondary);">${escapeHtml(f.explanation)}</div>
+                    </div>
+                    <div>
+                        <span class="mono" style="font-size: 0.68rem; color: var(--status-warning); display: block; margin-bottom: 0.2rem;">OPERATIONAL CONSEQUENCE:</span>
+                        <div style="color: #E2E8F0;">${escapeHtml(f.potential_consequence)}</div>
+                    </div>
+                </div>
+            `;
+            findingsContainer.appendChild(card);
+        });
+    }
+
+    // -------------------------------------------------------------
+    // TAB 2: INTERACTIVE Q&A
+    // -------------------------------------------------------------
+    const askQuestionInput = document.getElementById('askQuestionInput');
+    const askSubmitBtn = document.getElementById('askSubmitBtn');
+    const qaLoadingIndicator = document.getElementById('qaLoadingIndicator');
+    const qaAnswerCard = document.getElementById('qaAnswerCard');
+    const qaAnswerText = document.getElementById('qaAnswerText');
+    const qaCitationsBadge = document.getElementById('qaCitationsBadge');
+    const qaCitationsList = document.getElementById('qaCitationsList');
+
+    document.querySelectorAll('.quick-q-btn').forEach(b => {
+        b.addEventListener('click', () => {
+            askQuestionInput.value = b.getAttribute('data-q');
+            submitQuestion();
+        });
+    });
+
+    askSubmitBtn.addEventListener('click', submitQuestion);
+
+    async function submitQuestion() {
+        const q = askQuestionInput.value.trim();
+        if (!q) return;
+
+        qaLoadingIndicator.style.display = 'flex';
+        qaAnswerCard.style.display = 'none';
+
+        const payload = {
+            question: q,
+            raw_text: contractTextInput.value.trim() || null,
+            sha256: currentDocumentSha256
+        };
+
+        try {
+            const res = await fetch('/tools/contract_intel/api/ask', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Q&A query failed (${res.status})`);
+            }
+
+            const data = await res.json();
+            qaAnswerCard.style.display = 'block';
+            qaAnswerText.innerText = data.answer;
+
+            const citations = data.citations || [];
+            qaCitationsBadge.innerText = `${citations.length} VERBATIM CITATIONS`;
+            qaCitationsList.innerHTML = '';
+
+            if (citations.length > 0) {
+                citations.forEach(c => {
+                    const div = document.createElement('div');
+                    div.style.background = '#050505';
+                    div.style.border = '1px solid var(--border)';
+                    div.style.padding = '0.5rem 0.75rem';
+                    div.className = 'mono';
+                    div.style.fontSize = '0.75rem';
+                    div.innerHTML = `
+                        <div style="color: var(--accent); margin-bottom: 0.15rem;">PAGE ${c.page} ${c.verified ? '<span style=\"color:var(--status-success);\">[VERIFIED VERBATIM]</span>' : ''}</div>
+                        <div style="color: #DDD; font-style: italic;">"${escapeHtml(c.quote)}"</div>
+                    `;
+                    qaCitationsList.appendChild(div);
+                });
+            } else {
+                qaCitationsList.innerHTML = '<div class="mono" style="font-size:0.75rem; color:var(--text-muted);">No verbatim citations isolated for this response.</div>';
+            }
+        } catch (e) {
+            qaAnswerCard.style.display = 'block';
+            qaAnswerText.innerHTML = `<span style="color:var(--status-error);">Error: ${escapeHtml(e.message)}</span>`;
+        } finally {
+            qaLoadingIndicator.style.display = 'none';
+        }
+    }
+
+    // -------------------------------------------------------------
+    // TAB 3: DUAL AGREEMENT COMPARISON
+    // -------------------------------------------------------------
+    const loadPresetCompareBtn = document.getElementById('loadPresetCompareBtn');
+    const compareNameA = document.getElementById('compareNameA');
+    const compareTextA = document.getElementById('compareTextA');
+    const compareNameB = document.getElementById('compareNameB');
+    const compareTextB = document.getElementById('compareTextB');
+    const runCompareBtn = document.getElementById('runCompareBtn');
+    const compareLoadingIndicator = document.getElementById('compareLoadingIndicator');
+    const compareResultsArea = document.getElementById('compareResultsArea');
+    const compareVerdictText = document.getElementById('compareVerdictText');
+    const compareTableBody = document.getElementById('compareTableBody');
+    const thCompareNameA = document.getElementById('thCompareNameA');
+    const thCompareNameB = document.getElementById('thCompareNameB');
+
+    loadPresetCompareBtn.addEventListener('click', async () => {
+        try {
+            const [resA, resB] = await Promise.all([
+                fetch('/tools/contract_intel/api/sample/sample_a_restrictive'),
+                fetch('/tools/contract_intel/api/sample/sample_b_flexible')
+            ]);
+            const dataA = await resA.json();
+            const dataB = await resB.json();
+
+            compareNameA.value = dataA.name;
+            compareTextA.value = dataA.text;
+            compareNameB.value = dataB.name;
+            compareTextB.value = dataB.text;
+            
+            executeComparison();
+        } catch (e) {
+            alert("Failed to load preset comparison: " + e.message);
+        }
+    });
+
+    runCompareBtn.addEventListener('click', executeComparison);
+
+    async function executeComparison() {
+        const textA = compareTextA.value.trim();
+        const textB = compareTextB.value.trim();
+        if (!textA || !textB) {
+            alert("Please paste text for both Contract A and Contract B.");
+            return;
+        }
+
+        compareLoadingIndicator.style.display = 'flex';
+        compareResultsArea.style.display = 'none';
+
+        try {
+            const res = await fetch('/tools/contract_intel/api/compare', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    text_a: textA,
+                    text_b: textB,
+                    name_a: compareNameA.value.trim() || 'Contract A',
+                    name_b: compareNameB.value.trim() || 'Contract B'
+                })
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Comparison failed (${res.status})`);
+            }
+
+            const data = await res.json();
+            thCompareNameA.innerText = data.name_a;
+            thCompareNameB.innerText = data.name_b;
+            compareVerdictText.innerText = data.verdict;
+
+            compareTableBody.innerHTML = '';
+            (data.comparison_table || []).forEach(row => {
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                if (row.diff) {
+                    tr.style.background = 'rgba(255,255,255,0.02)';
+                }
+                tr.innerHTML = `
+                    <td class="mono" style="padding: 0.75rem; font-weight: 600; color: #FFF;">${escapeHtml(row.label)}</td>
+                    <td class="mono" style="padding: 0.75rem; color: ${row.diff ? 'var(--status-error)' : 'var(--text-secondary)'};">
+                        ${escapeHtml(row.a_val)} ${row.a_ev ? `<span style="color:var(--text-muted); font-size:0.7rem;">(${escapeHtml(row.a_ev)})</span>` : ''}
+                    </td>
+                    <td class="mono" style="padding: 0.75rem; color: ${row.diff ? 'var(--status-success)' : 'var(--text-secondary)'};">
+                        ${escapeHtml(row.b_val)} ${row.b_ev ? `<span style="color:var(--text-muted); font-size:0.7rem;">(${escapeHtml(row.b_ev)})</span>` : ''}
+                    </td>
+                    <td class="mono" style="padding: 0.75rem; text-align: center;">
+                        ${row.diff ? '<span class="badge" style="background:rgba(210,153,34,0.15); border:1px solid var(--status-warning); color:var(--status-warning); font-size:0.65rem;">VARIANCE</span>' : '<span style="color:var(--text-muted); font-size:0.7rem;">IDENTICAL</span>'}
+                    </td>
+                `;
+                compareTableBody.appendChild(tr);
+            });
+
+            compareResultsArea.style.display = 'flex';
+        } catch (e) {
+            alert("Comparison error: " + e.message);
+        } finally {
+            compareLoadingIndicator.style.display = 'none';
+        }
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+});
+</script>
+{% endblock %}

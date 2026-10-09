@@ -7,6 +7,8 @@ from typing import List, Dict, Any, Optional
 from pathlib import Path
 import httpx
 
+from src.tools.feed_monitor.backend.geocoder import resolve_location, detect_threat_category
+
 logger = logging.getLogger("feed_monitor.analyzer")
 
 def _load_env_config() -> Dict[str, str]:
@@ -41,11 +43,15 @@ Evaluate whether the following feed items describe real cyber/kinetic threats an
 User Custom Scenarios to Alert On:
 {json.dumps(scenarios)}
 
-RULES FOR SCENARIO MATCHING:
+RULES FOR SCENARIO MATCHING & GEOSPATIAL INTELLIGENCE:
 1. Examine each article title and description carefully.
 2. Does it EXPLICITLY match one of the user scenarios?
 3. If it only talks about general news or loosely related themes without the specific event occurring, set "is_scenario_match" to false.
 4. "is_threat" must be true if the event involves malware, ransomware, APT, data breaches, vulnerability exploitation, cyber attacks, or kinetic conflict.
+5. LOCATION-BASED INTELLIGENCE:
+   - If the item involves physical war, kinetic missile/drone strikes, military conflict, terrorism, critical infrastructure attacks, or country-specific government/citizen data leaks, extract the location ("location_detected", e.g. "Kyiv, Ukraine", "Tehran, Iran", "Israel", "Taiwan", "India", etc.).
+   - Classify "threat_category" into one of: "war_conflict", "terrorism", "state_leak", "critical_infra", "cyber_intel".
+   - If the item is general software CVE or global code vulnerability with NO specific country or physical conflict, set "location_detected" to null.
 
 Raw Feed Items:
 {json.dumps(feed_summaries)}
@@ -61,7 +67,9 @@ JSON format:
       "is_threat": true,
       "is_scenario_match": false,
       "matched_scenario_name": "Exact matching scenario string from the list, or 'None'",
-      "summary": "Concise 1-2 sentence threat intelligence summary."
+      "summary": "Concise 1-2 sentence threat intelligence summary.",
+      "location_detected": "Country or city name if war/terrorism/national leak, otherwise null",
+      "threat_category": "war_conflict or terrorism or state_leak or critical_infra or cyber_intel"
     }}
   ]
 }}
@@ -76,7 +84,6 @@ def _extract_json_analysis(raw_text: str) -> List[Dict[str, Any]]:
     elif cleaned.startswith("```"):
         cleaned = cleaned.split("```", 1)[1].split("```", 1)[0].strip()
 
-    # Search for first { and last }
     first_brace = cleaned.find("{")
     last_brace = cleaned.rfind("}")
     if first_brace != -1 and last_brace != -1:
@@ -98,6 +105,12 @@ def _extract_json_analysis(raw_text: str) -> List[Dict[str, Any]]:
             else:
                 scenario_matched = matched_name
 
+            raw_loc = item.get("location_detected")
+            if isinstance(raw_loc, str) and raw_loc.lower() in invalid_tokens:
+                raw_loc = None
+
+            raw_cat = item.get("threat_category")
+
             normalized.append({
                 "item_title": item.get("item_title", "Untitled Item"),
                 "reasoning": item.get("reasoning", "Autonomous CTI heuristic correlation."),
@@ -105,7 +118,9 @@ def _extract_json_analysis(raw_text: str) -> List[Dict[str, Any]]:
                 "is_scenario_match": is_match,
                 "scenario_matched": scenario_matched,
                 "matched_scenario_name": scenario_matched,
-                "summary": item.get("summary", "Analysis completed.")
+                "summary": item.get("summary", "Analysis completed."),
+                "location_detected": raw_loc,
+                "threat_category": raw_cat
             })
         return normalized
     except Exception as e:
@@ -117,7 +132,8 @@ def _heuristic_analysis(feeds: List[Dict[str, Any]], scenarios: List[str]) -> Li
     threat_keywords = [
         "ransomware", "malware", "apt", "breach", "zero-day", "0-day", "exploit",
         "cve", "ddos", "backdoor", "phishing", "leak", "hacked", "cyber", "attack",
-        "espionage", "trojan", "vulnerability", "infostealer", "rce", "compromise"
+        "espionage", "trojan", "vulnerability", "infostealer", "rce", "compromise",
+        "missile", "drone strike", "war", "terror", "shelling", "military"
     ]
 
     for f in feeds:
@@ -141,7 +157,7 @@ def _heuristic_analysis(feeds: List[Dict[str, Any]], scenarios: List[str]) -> Li
         if is_match:
             reasoning = f"Heuristic match triggered for scenario '{matched_scenario}'. Key threat indicators identified in telemetry."
         elif is_threat:
-            reasoning = "Cyber adversary indicators identified based on signature patterns and threat taxonomy."
+            reasoning = "Adversary markers and kinetic/cyber indicators identified based on signature patterns and threat taxonomy."
         else:
             reasoning = "Informational telemetry item. No critical adversary markers or scenario thresholds exceeded."
 
@@ -152,7 +168,9 @@ def _heuristic_analysis(feeds: List[Dict[str, Any]], scenarios: List[str]) -> Li
             "is_scenario_match": is_match,
             "scenario_matched": matched_scenario,
             "matched_scenario_name": matched_scenario,
-            "summary": desc[:180] + ("..." if len(desc) > 180 else "") if desc else "Automated telemetry assessment completed."
+            "summary": desc[:180] + ("..." if len(desc) > 180 else "") if desc else "Automated telemetry assessment completed.",
+            "location_detected": None,
+            "threat_category": detect_threat_category(text) or ("cyber_intel" if is_threat else "other")
         })
     return results
 
@@ -170,7 +188,7 @@ def _analyze_with_groq(feeds: List[Dict[str, Any]], scenarios: List[str], config
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.1,
-        "max_tokens": 1200,
+        "max_tokens": 1400,
         "response_format": {"type": "json_object"}
     }
     
@@ -217,7 +235,7 @@ def _analyze_with_gemma(feeds: List[Dict[str, Any]], scenarios: List[str], confi
     return None
 
 def analyze_feeds(feeds: List[Dict[str, Any]], scenarios: List[str], provider: str = "auto") -> List[Dict[str, Any]]:
-    """Analyzes ingested feeds against threat taxonomy and user alert scenarios."""
+    """Analyzes ingested feeds against threat taxonomy, alert scenarios, and geospatial intelligence."""
     if not feeds:
         return []
 
@@ -229,7 +247,7 @@ def analyze_feeds(feeds: List[Dict[str, Any]], scenarios: List[str], provider: s
         results = _analyze_with_groq(feeds, scenarios, config)
     elif prov == "gemma":
         results = _analyze_with_gemma(feeds, scenarios, config)
-    else: # auto
+    else:  # auto
         results = _analyze_with_groq(feeds, scenarios, config)
         if not results:
             results = _analyze_with_gemma(feeds, scenarios, config)
@@ -239,18 +257,36 @@ def analyze_feeds(feeds: List[Dict[str, Any]], scenarios: List[str], provider: s
         logger.info("Using heuristic intelligence engine fallback.")
         results = _heuristic_analysis(feeds, scenarios)
 
-    # Attach extracted URLs back to each result item
-    feed_url_map = {f.get("title", "").strip().lower(): f.get("extracted_urls", []) for f in feeds}
+    # Attach extracted URLs, resolve locations and coordinates
+    feed_item_map = {f.get("title", "").strip().lower(): f for f in feeds}
     for item in results:
         title_key = item.get("item_title", "").strip().lower()
-        if title_key in feed_url_map:
-            item["extracted_urls"] = feed_url_map[title_key]
-        else:
-            # Substring match if title was slightly altered by LLM
-            matched_urls = []
-            for ft, urls in feed_url_map.items():
+        matched_feed = feed_item_map.get(title_key)
+        
+        if not matched_feed:
+            for ft, f_obj in feed_item_map.items():
                 if ft in title_key or title_key in ft:
-                    matched_urls.extend(urls)
-            item["extracted_urls"] = list(dict.fromkeys(matched_urls))
+                    matched_feed = f_obj
+                    break
+
+        item_desc = matched_feed.get("description", "") if matched_feed else ""
+        extracted_urls = matched_feed.get("extracted_urls", []) if matched_feed else []
+        item["extracted_urls"] = extracted_urls
+
+        # Spatial intelligence resolution: only for war, terrorism, state data leaks, critical infra
+        loc_hint = item.get("location_detected")
+        cat_hint = item.get("threat_category")
+        full_text = f"{item.get('item_title', '')} {item_desc} {item.get('summary', '')}"
+
+        is_geo, loc_name, coords, category = resolve_location(
+            location_name=loc_hint,
+            text=full_text,
+            category_hint=cat_hint
+        )
+
+        item["is_geolocated"] = is_geo
+        item["location_name"] = loc_name
+        item["coordinates"] = coords
+        item["threat_category"] = category or cat_hint or "cyber_intel"
 
     return results

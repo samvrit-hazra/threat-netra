@@ -1,12 +1,18 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Feed Monitoring - Threat Netra{% endblock %}{% block content %}
+{% block title %}Feed Monitoring & Spatial GIS - Threat Netra{% endblock %}
+
+{% block content %}
+<!-- Leaflet OpenStreetMap CSS & JS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+
 <div class="dashboard-user-bar">
     <div>
-        <span class="eyebrow" style="margin-bottom: 0.25rem;">MODULE // REAL-TIME CTI INGESTION &amp; SCENARIO TRIAGE</span>
+        <span class="eyebrow" style="margin-bottom: 0.25rem;">MODULE // REAL-TIME CTI INGESTION &amp; SPATIAL GIS</span>
         <h2 style="margin: 0; font-size: 1.5rem; letter-spacing: -0.01em;">Autonomous Threat Feed Monitor</h2>
         <div class="mono" style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem;">
-            OPERATIONAL CLEARANCE: {{ user.role | upper }} &bull; INGESTION ENGINE: TELEGRAM (RSS-BRIDGE) + BING OSINT + VIRUSTOTAL
+            OPERATIONAL CLEARANCE: {{ user.role | upper }} &bull; INGESTION ENGINE: TELEGRAM + BING OSINT + OPENSTREETMAP GIS
         </div>
     </div>
     <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
@@ -43,16 +49,16 @@
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
                         <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary);" id="queryLabel">QUERY / SEARCH TARGET</label>
                     </div>
-                    <input type="text" id="targetQuery" value="ransomware hospital" placeholder="e.g. ransomware or telegram channel handle" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-size: 0.8125rem; font-family: var(--font-mono); box-sizing: border-box;" required />
+                    <input type="text" id="targetQuery" value="ukraine missile drone strike" placeholder="e.g. ukraine missile or ransomware" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-size: 0.8125rem; font-family: var(--font-mono); box-sizing: border-box;" required />
                     
                     <!-- QUERY PRESETS -->
                     <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;">
-                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted); align-self: center;">PRESETS:</span>
-                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="ransomware attack" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">Ransomware</button>
-                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="critical infrastructure cyberattack" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">Critical Infra</button>
-                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="zero-day vulnerability exploit" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">Zero-Day CVE</button>
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted); align-self: center;">THEATERS:</span>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="ukraine missile drone strike" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">📍 Ukraine War</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="israel lebanon airstrike" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">📍 Mideast Conflict</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="red sea missile drone commercial ship" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">📍 Red Sea / Yemen</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="india citizen data leak breach" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">📍 National Leak</button>
                         <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="telegram" data-val="durov" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">TG: @durov</button>
-                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="telegram" data-val="tginfo" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">TG: @tginfo</button>
                     </div>
                 </div>
 
@@ -61,13 +67,13 @@
                         <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary);">ALERT SCENARIO MATRIX</label>
                         <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">COMMA OR LINE SEPARATED</span>
                     </div>
-                    <textarea id="scenarioInput" rows="3" placeholder="e.g. Hospital clinical systems shut down by ransomware, Power grid blackout cyber sabotage, Zero-day exploit in edge gateway" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-size: 0.8125rem; font-family: var(--font-sans); resize: vertical; box-sizing: border-box;">Ransomware attack shuts down hospital clinical systems, SCADA power grid sabotage, Zero-day remote code execution in firewalls</textarea>
+                    <textarea id="scenarioInput" rows="3" placeholder="e.g. Drone and missile strikes on power grid in Kyiv, Terrorist bombing in embassy district, Citizen identity database leaked online" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-size: 0.8125rem; font-family: var(--font-sans); resize: vertical; box-sizing: border-box;">Drone and missile strikes on energy infrastructure in Kyiv, Airstrike or artillery barrage in Beirut, Massive citizen data breach exposed online</textarea>
                     
                     <!-- SCENARIO SHORTCUTS -->
                     <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;">
-                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Healthcare ransomware extortion outage" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Healthcare Ransomware</button>
-                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="State-sponsored kinetic missile strike" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Kinetic Strike</button>
-                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Water utility treatment plant breach" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Water Utility APT</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Missile strike hits critical energy facility" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Missile Strike</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Terrorist bomb blast casualties" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Terror Incident</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Classified government intelligence documents leaked" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ State Data Leak</button>
                     </div>
                 </div>
 
@@ -125,7 +131,7 @@
 
     </div>
 
-    <!-- RIGHT MAIN WORKSPACE: RAW FEEDS & AI TRIAGE -->
+    <!-- RIGHT MAIN WORKSPACE: MAP, STATUS & AI TRIAGE -->
     <div style="display: flex; flex-direction: column; gap: 1.5rem;">
         
         <!-- STATUS / METADATA SUMMARY BAR -->
@@ -133,14 +139,36 @@
             <div class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
                 <div>INGESTED: <span id="metaFeedCount" style="color: var(--text-primary); font-weight: 600;">0</span> ITEMS</div>
                 <div>TRIAGED: <span id="metaTriagedCount" style="color: var(--text-primary); font-weight: 600;">0</span> ITEMS</div>
+                <div>GEO-TAGGED: <span id="metaGeoCount" style="color: var(--accent); font-weight: 600;">0</span> THEATERS</div>
                 <div>ALERTS: <span id="metaAlertCount" style="color: var(--status-error); font-weight: 600;">0</span> DETECTED</div>
-                <div id="metaFeedUrlWrap" style="display: none; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <div id="metaFeedUrlWrap" style="display: none; max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     RSS: <a id="metaFeedUrlLink" href="#" target="_blank" style="color: var(--accent); text-decoration: underline;">ENDPOINT</a>
                 </div>
             </div>
             <div id="loadingIndicator" style="display: none; align-items: center; gap: 0.5rem;" class="mono">
                 <span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); animation: pulse 1s infinite;"></span>
                 <span style="font-size: 0.75rem; color: var(--accent);" id="loadingStatusText">INGESTING TELEMETRY...</span>
+            </div>
+        </div>
+
+        <!-- TACTICAL SPATIAL THREAT RADAR // OPENSTREETMAP GIS -->
+        <div class="tool-card" id="spatialMapCard" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="eyebrow" style="margin: 0; color: var(--accent);">TACTICAL GIS // SPATIAL RADAR</span>
+                    <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">OPENSTREETMAP TACTICAL TILES (NO API KEY)</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span class="badge" id="spatialLockBadge" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); font-family: var(--font-mono); font-size: 0.7rem;">RADAR // STANDBY (0 THEATERS)</span>
+                    <button type="button" id="resetMapZoomBtn" class="btn btn-subtle btn-sm" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Reset World View</button>
+                </div>
+            </div>
+            
+            <div id="osmMapContainer" style="height: 360px; width: 100%; background: #050505; border: 1px solid var(--border); position: relative; z-index: 10;"></div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.6rem; font-size: 0.72rem; color: var(--text-muted); flex-wrap: wrap; gap: 0.5rem;" class="mono">
+                <div>CRITERIA: WAR &bull; ARMED CONFLICT &bull; TERRORISM &bull; NATIONAL DATA LEAKS &bull; CRITICAL INFRASTRUCTURE</div>
+                <div id="spatialActiveTheatersText" style="color: var(--text-secondary);">NO ACTIVE LOCATION-BASED THREATS ISOLATED</div>
             </div>
         </div>
 
@@ -151,7 +179,7 @@
                     <span class="eyebrow" style="margin: 0;">CTI TRIAGE ASSESSMENT</span>
                     <h3 style="margin: 0.2rem 0 0 0; font-size: 1.1rem;">AI Intelligence Analysis Stream</h3>
                 </div>
-                <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="triageEngineBadge">ENGINE // DUAL LLM</span>
+                <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="triageEngineBadge">ENGINE // DUAL LLM + GIS</span>
             </div>
 
             <div id="triageResultsContainer" style="display: flex; flex-direction: column; gap: 1rem;">
@@ -162,7 +190,7 @@
             </div>
         </div>
 
-        <!-- RAW FEEDS INGESTION PANEL (COLLAPSIBLE / LOWER PRIORITY) -->
+        <!-- RAW FEEDS INGESTION PANEL (COLLAPSIBLE) -->
         <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
                 <div style="display: flex; align-items: center; gap: 0.5rem;">
@@ -198,16 +226,17 @@
         <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
             <thead>
                 <tr style="border-bottom: 1px solid var(--border); background: #000;" class="mono">
-                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 140px;">TIMESTAMP</th>
-                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 120px;">SOURCE</th>
-                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 260px;">MATCHED SCENARIO</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 130px;">TIMESTAMP</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 100px;">SOURCE</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 140px;">LOCATION</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 240px;">MATCHED SCENARIO</th>
                     <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);">ITEM HEADLINE</th>
-                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 100px; text-align: right;">ACTION</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 90px; text-align: right;">ACTION</th>
                 </tr>
             </thead>
             <tbody id="alertLogTableBody">
                 <tr id="emptyAlertLogTr">
-                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);" class="mono">
+                    <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);" class="mono">
                         NO HIGH-PRIORITY SCENARIO ALERTS LOGGED YET
                     </td>
                 </tr>
@@ -232,6 +261,71 @@
 .feed-url-chip:hover {
     background: #1A1A1A !important;
     border-color: var(--accent) !important;
+}
+
+/* OPENSTREETMAP TACTICAL DEFENSE INVERSION (PURE DARK NO API KEY) */
+#osmMapContainer .leaflet-tile {
+    filter: brightness(0.6) invert(1) contrast(3) hue-rotate(200deg) saturate(0.25) brightness(0.7);
+}
+
+/* TACTICAL LEAFLET MARKERS & POPUP CUSTOMIZATION */
+.tactical-ping-marker {
+    position: relative;
+    width: 14px;
+    height: 14px;
+    background: var(--status-error);
+    border-radius: 50%;
+    border: 2px solid #FFFFFF;
+    box-shadow: 0 0 10px rgba(248, 81, 73, 0.9);
+    cursor: pointer;
+}
+.tactical-ping-marker.leak {
+    background: var(--status-warning);
+    box-shadow: 0 0 10px rgba(210, 153, 34, 0.9);
+}
+.tactical-ping-marker.infra {
+    background: #38BDF8;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.9);
+}
+.tactical-ping-marker::after {
+    content: '';
+    position: absolute;
+    top: -7px;
+    left: -7px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 2px solid var(--status-error);
+    animation: radarRipple 1.8s infinite cubic-bezier(0.215, 0.61, 0.355, 1);
+}
+.tactical-ping-marker.leak::after {
+    border-color: var(--status-warning);
+}
+.tactical-ping-marker.infra::after {
+    border-color: #38BDF8;
+}
+@keyframes radarRipple {
+    0% { transform: scale(0.6); opacity: 1; }
+    100% { transform: scale(2.4); opacity: 0; }
+}
+
+.leaflet-popup-content-wrapper {
+    background: #0A0A0A !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 0px !important;
+    color: var(--text-primary) !important;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.95) !important;
+    padding: 0 !important;
+}
+.leaflet-popup-content {
+    margin: 0.85rem !important;
+    line-height: 1.4 !important;
+}
+.leaflet-popup-tip {
+    background: #0A0A0A !important;
+}
+.leaflet-container {
+    background: #050505 !important;
 }
 </style>
 
@@ -259,10 +353,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const loadingStatusText = document.getElementById('loadingStatusText');
     const metaFeedCount = document.getElementById('metaFeedCount');
     const metaTriagedCount = document.getElementById('metaTriagedCount');
+    const metaGeoCount = document.getElementById('metaGeoCount');
     const metaAlertCount = document.getElementById('metaAlertCount');
     const metaFeedUrlWrap = document.getElementById('metaFeedUrlWrap');
     const metaFeedUrlLink = document.getElementById('metaFeedUrlLink');
     
+    const spatialLockBadge = document.getElementById('spatialLockBadge');
+    const spatialActiveTheatersText = document.getElementById('spatialActiveTheatersText');
+    const resetMapZoomBtn = document.getElementById('resetMapZoomBtn');
+
     const triageResultsContainer = document.getElementById('triageResultsContainer');
     const rawFeedsList = document.getElementById('rawFeedsList');
     const rawFeedBadge = document.getElementById('rawFeedBadge');
@@ -272,6 +371,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const scanUrlInput = document.getElementById('scanUrlInput');
     const scanUrlBtn = document.getElementById('scanUrlBtn');
     const scanResultArea = document.getElementById('scanResultArea');
+
+    // -------------------------------------------------------------
+    // INITIALIZE OFFICIAL OPENSTREETMAP LEAFLET TACTICAL MAP
+    // (100% Free - Standard OSM Tile Server - No API Key Required)
+    // -------------------------------------------------------------
+    const defaultCenter = [25.0, 25.0];
+    const defaultZoom = 2;
+    const map = L.map('osmMapContainer', {
+        center: defaultCenter,
+        zoom: defaultZoom,
+        minZoom: 2,
+        maxZoom: 19,
+        zoomControl: true,
+        attributionControl: true
+    });
+
+    // Official OpenStreetMap tile layer - Zero API key requirement
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank">OpenStreetMap</a> contributors &bull; Tactical HUD',
+        maxZoom: 19
+    }).addTo(map);
+
+    const markersGroup = L.featureGroup().addTo(map);
+    const markerRegistry = {}; // key -> Leaflet Marker
+
+    resetMapZoomBtn.addEventListener('click', () => {
+        if (markersGroup.getLayers().length > 0) {
+            map.fitBounds(markersGroup.getBounds().pad(0.3));
+        } else {
+            map.setView(defaultCenter, defaultZoom);
+        }
+    });
 
     // Request notification permissions
     if ("Notification" in window && Notification.permission === "default") {
@@ -288,9 +419,9 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         } else {
             queryLabel.innerText = 'BING NEWS SEARCH QUERY';
-            targetQuery.placeholder = 'e.g. ransomware attack or critical infrastructure';
+            targetQuery.placeholder = 'e.g. ukraine missile or ransomware';
             if (targetQuery.value === 'durov' || targetQuery.value.length === 0) {
-                targetQuery.value = 'ransomware hospital';
+                targetQuery.value = 'ukraine missile drone strike';
             }
         }
     });
@@ -329,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // Toast alert builder
-    function showThreatToast(scenario, title) {
+    function showThreatToast(scenario, title, locationName) {
         const container = document.getElementById('toastContainer');
         const toast = document.createElement('div');
         toast.className = 'toast-box';
@@ -340,9 +471,14 @@ document.addEventListener('DOMContentLoaded', () => {
         toast.style.color = '#FFF';
         toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.8)';
         
+        const locBadge = locationName ? `<span class="mono" style="font-size: 0.65rem; background: rgba(255,255,255,0.1); padding: 0.15rem 0.4rem; color: #FFF; margin-left: 0.5rem;">📍 ${escapeHtml(locationName)}</span>` : '';
+
         toast.innerHTML = `
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
-                <span class="mono" style="font-size: 0.75rem; color: var(--status-error); font-weight: 700;">🚨 THREAT SCENARIO MATCH</span>
+                <div style="display: flex; align-items: center;">
+                    <span class="mono" style="font-size: 0.75rem; color: var(--status-error); font-weight: 700;">🚨 THREAT SCENARIO MATCH</span>
+                    ${locBadge}
+                </div>
                 <button type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; line-height: 1;" onclick="this.closest('.toast-box').remove()">&times;</button>
             </div>
             <div style="font-weight: 600; font-size: 0.8125rem; color: #FFF; margin-bottom: 0.25rem;">${escapeHtml(scenario)}</div>
@@ -357,6 +493,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!str) return '';
         return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
+
+    // Focus on map coordinate function
+    window.flyToTheater = function(lat, lon, key) {
+        map.flyTo([lat, lon], 7, { duration: 1.2 });
+        if (markerRegistry[key]) {
+            setTimeout(() => {
+                markerRegistry[key].openPopup();
+            }, 1250);
+        }
+        const cardElem = document.getElementById('spatialMapCard');
+        if (cardElem) {
+            cardElem.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
 
     // Core Ingestion & Analysis Routine
     async function executeTriage() {
@@ -441,6 +591,89 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         }
 
+        // -------------------------------------------------------------
+        // RENDER SPATIAL RADAR MARKERS (OPENSTREETMAP)
+        // -------------------------------------------------------------
+        markersGroup.clearLayers();
+        Object.keys(markerRegistry).forEach(k => delete markerRegistry[k]);
+
+        const geolocatedItems = results.filter(r => r.is_geolocated && r.coordinates && r.coordinates.length === 2);
+        metaGeoCount.innerText = geolocatedItems.length;
+
+        if (geolocatedItems.length > 0) {
+            spatialLockBadge.style.background = 'rgba(248,81,73,0.15)';
+            spatialLockBadge.style.borderColor = 'var(--status-error)';
+            spatialLockBadge.style.color = 'var(--status-error)';
+            spatialLockBadge.innerText = `RADAR // LOCKED (${geolocatedItems.length} THEATERS)`;
+
+            const locNames = [...new Set(geolocatedItems.map(g => g.location_name).filter(Boolean))];
+            spatialActiveTheatersText.innerHTML = `ACTIVE THEATERS: <strong style="color: var(--text-primary);">${locNames.join(', ')}</strong>`;
+
+            geolocatedItems.forEach((geoItem, idx) => {
+                const lat = geoItem.coordinates[0];
+                const lon = geoItem.coordinates[1];
+                const cat = geoItem.threat_category || 'war_conflict';
+                
+                let markerClass = 'tactical-ping-marker';
+                let catBadgeLabel = 'WAR & KINETIC CONFLICT';
+                let catColor = 'var(--status-error)';
+
+                if (cat === 'state_leak') {
+                    markerClass += ' leak';
+                    catBadgeLabel = 'NATIONAL DATA LEAK';
+                    catColor = 'var(--status-warning)';
+                } else if (cat === 'critical_infra') {
+                    markerClass += ' infra';
+                    catBadgeLabel = 'CRITICAL INFRASTRUCTURE';
+                    catColor = '#38BDF8';
+                } else if (cat === 'terrorism') {
+                    catBadgeLabel = 'TERRORISM INCIDENT';
+                }
+
+                const customIcon = L.divIcon({
+                    className: 'custom-leaflet-div-icon',
+                    html: `<div class="${markerClass}" title="${escapeHtml(geoItem.location_name || '')}"></div>`,
+                    iconSize: [14, 14],
+                    iconAnchor: [7, 7],
+                    popupAnchor: [0, -10]
+                });
+
+                const marker = L.marker([lat, lon], { icon: customIcon });
+
+                const popupHtml = `
+                    <div style="min-width: 240px; max-width: 300px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                            <span class="mono" style="font-size: 0.65rem; color: ${catColor}; font-weight: 700;">[${catBadgeLabel}]</span>
+                            <span class="mono" style="font-size: 0.65rem; color: var(--text-muted);">📍 ${escapeHtml(geoItem.location_name || '')}</span>
+                        </div>
+                        <div style="font-size: 0.8rem; font-weight: 600; color: #FFF; margin-bottom: 0.35rem; line-height: 1.3;">${escapeHtml(geoItem.item_title)}</div>
+                        <div style="font-size: 0.72rem; color: var(--text-secondary); line-height: 1.35; margin-bottom: 0.5rem;">${escapeHtml(geoItem.summary)}</div>
+                        <div class="mono" style="font-size: 0.65rem; color: var(--text-muted);">COORDINATES: ${lat}&deg;, ${lon}&deg;</div>
+                    </div>
+                `;
+
+                marker.bindPopup(popupHtml);
+                markersGroup.addLayer(marker);
+                
+                const itemKey = `item_${idx}`;
+                markerRegistry[itemKey] = marker;
+                geoItem._domKey = itemKey;
+            });
+
+            // Automatically focus and fit bounds
+            try {
+                map.fitBounds(markersGroup.getBounds().pad(0.35));
+            } catch (e) {
+                map.setView(geolocatedItems[0].coordinates, 6);
+            }
+        } else {
+            spatialLockBadge.style.background = 'rgba(255,255,255,0.06)';
+            spatialLockBadge.style.borderColor = 'var(--border)';
+            spatialLockBadge.style.color = 'var(--text-secondary)';
+            spatialLockBadge.innerText = 'RADAR // STANDBY (0 THEATERS)';
+            spatialActiveTheatersText.innerText = 'NO ACTIVE LOCATION-BASED THREATS ISOLATED';
+        }
+
         // Render AI Triage Cards
         if (results.length === 0) {
             triageResultsContainer.innerHTML = `
@@ -453,10 +686,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
         triageResultsContainer.innerHTML = '';
 
-        results.forEach(res => {
+        results.forEach((res, idx) => {
             const isMatch = Boolean(res.is_scenario_match && res.scenario_matched);
             const isThreat = Boolean(res.is_threat || isMatch);
             const scenarioName = res.scenario_matched || res.matched_scenario_name;
+            const hasGeo = Boolean(res.is_geolocated && res.coordinates);
 
             // Handle alert triggers
             if (isMatch && scenarioName && !seenAlertTitles.has(res.item_title)) {
@@ -465,10 +699,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 metaAlertCount.innerText = alertCount;
 
                 // Dispatch toast & desktop notification
-                showThreatToast(scenarioName, res.item_title);
+                showThreatToast(scenarioName, res.item_title, res.location_name);
                 if ("Notification" in window && Notification.permission === "granted") {
                     new Notification("🚨 Threat Netra Alert Match", {
-                        body: `${scenarioName}\n\n${res.item_title}`
+                        body: `${scenarioName}\n[${res.location_name || 'Global'}]\n\n${res.item_title}`
                     });
                 }
 
@@ -481,6 +715,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 tr.innerHTML = `
                     <td class="mono" style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">${new Date().toLocaleTimeString()}</td>
                     <td class="mono" style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">${escapeHtml(meta.source || 'FEED')}</td>
+                    <td class="mono" style="padding: 0.75rem; font-size: 0.75rem; color: ${res.location_name ? 'var(--accent)' : 'var(--text-muted)'};">${escapeHtml(res.location_name || 'NON-SPATIAL')}</td>
                     <td style="padding: 0.75rem; font-weight: 600; color: var(--status-error);">${escapeHtml(scenarioName)}</td>
                     <td style="padding: 0.75rem; color: var(--text-primary);">${escapeHtml(res.item_title)}</td>
                     <td style="padding: 0.75rem; text-align: right;">
@@ -506,6 +741,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 badgeHtml = `<span class="badge" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.7rem;">NOMINAL / INFORMATIONAL</span>`;
             }
 
+            // Spatial GIS action button on card
+            let geoButtonHtml = '';
+            if (hasGeo) {
+                const domKey = res._domKey || `item_${idx}`;
+                const lat = res.coordinates[0];
+                const lon = res.coordinates[1];
+                const catUpper = (res.threat_category || 'GEO').toUpperCase();
+
+                geoButtonHtml = `
+                    <div style="margin-top: 0.75rem; display: flex; align-items: center; justify-content: space-between; background: #07090C; border: 1px solid rgba(76, 141, 255, 0.3); padding: 0.4rem 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div class="mono" style="font-size: 0.72rem; color: #FFF; display: flex; align-items: center; gap: 0.4rem;">
+                            <span style="color: var(--accent);">📍 THEATER:</span>
+                            <strong>${escapeHtml(res.location_name)}</strong>
+                            <span style="color: var(--text-muted); font-size: 0.65rem;">(${catUpper} &bull; ${lat}&deg;, ${lon}&deg;)</span>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="flyToTheater(${lat}, ${lon}, '${domKey}')" style="font-size: 0.7rem; padding: 0.25rem 0.6rem;">
+                            Focus on OpenStreetMap &rarr;
+                        </button>
+                    </div>
+                `;
+            }
+
             // Extracted URLs chip buttons
             let urlsHtml = '';
             const urls = res.extracted_urls || [];
@@ -517,9 +774,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 `).join('');
 
                 urlsHtml = `
-                    <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
-                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">EXTRACTED OBSERVABLES (CLICK TO SCAN):</span>
-                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">${chips}</div>
+                    <div style="margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px solid var(--border);">
+                        <span class="mono" style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-bottom: 0.3rem;">EXTRACTED OBSERVABLES (CLICK TO SCAN):</span>
+                        <div style="display: flex; flex-direction: column; gap: 0.3rem;">${chips}</div>
                     </div>
                 `;
             }
@@ -530,7 +787,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div>${badgeHtml}</div>
                 </div>
 
-                <div style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+                <div style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.5rem;">
                     ${escapeHtml(res.summary)}
                 </div>
 
@@ -541,6 +798,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 </div>
                 ` : ''}
 
+                ${geoButtonHtml}
                 ${urlsHtml}
             `;
 
@@ -592,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
     clearAlertsBtn.addEventListener('click', () => {
         alertLogTableBody.innerHTML = `
             <tr id="emptyAlertLogTr">
-                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);" class="mono">
+                <td colspan="6" style="padding: 2rem; text-align: center; color: var(--text-muted);" class="mono">
                     NO HIGH-PRIORITY SCENARIO ALERTS LOGGED YET
                 </td>
             </tr>
@@ -674,7 +932,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </span>
                             <a href="https://www.virustotal.com/gui/search/${encodeURIComponent(url)}" target="_blank" style="font-size: 0.7rem; color: var(--accent); text-decoration: underline;" class="mono">VT Dossier &rarr;</a>
                         </div>
-                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; text-align: center; background: #080808; padding: 0.4rem; border: 1px solid var(--border);" class="mono">
+                        <div style="grid-template-columns: repeat(4, 1fr); display: grid; gap: 0.25rem; text-align: center; background: #080808; padding: 0.4rem; border: 1px solid var(--border);" class="mono">
                             <div><span style="font-size: 0.65rem; color: var(--status-error);">MAL</span><br><strong style="font-size: 0.85rem; color: var(--status-error);">${mal}</strong></div>
                             <div><span style="font-size: 0.65rem; color: var(--status-warning);">SUSP</span><br><strong style="font-size: 0.85rem; color: var(--status-warning);">${susp}</strong></div>
                             <div><span style="font-size: 0.65rem; color: var(--status-success);">HARM</span><br><strong style="font-size: 0.85rem; color: var(--status-success);">${harm}</strong></div>
