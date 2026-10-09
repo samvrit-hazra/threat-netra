@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Threat Netra{% endblock %}</title>
+    <!-- Shared CSS for the whole project -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
+</head>
+<body>
+    <!-- COMMON NAVIGATION BAR -->
+    <nav class="navbar">
+        <div class="logo">Threat Netra</div>
+        <ul class="nav-links">
+            <li><a href="/">Home</a></li>
+            <li><a href="/dashboard">Dashboard</a></li>
+            <li><a href="/auth/login">Login</a></li>
+        </ul>
+    </nav>
+
+    <!-- UNIQUE PAGE CONTENT GOES HERE -->
+    <main class="container">
+        {% block content %}
+        {% endblock %}
+    </main>
+
+    <!-- COMMON FOOTER -->
+    <footer>
+        <p>&copy; 2026 Threat Netra. All rights reserved.</p>
+    </footer>
+    
+    <!-- Shared JS -->
+    <script src="{{ url_for('static', path='js/main.js') }}"></script>
+</body>
+</html>
