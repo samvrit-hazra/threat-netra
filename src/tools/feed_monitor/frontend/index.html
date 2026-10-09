@@ -1,44 +1,703 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Feed Monitoring - Threat Netra{% endblock %}
-
-{% block content %}
-<div class="tool-container reveal-fade">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 1rem;">
-        <div>
-            <span class="eyebrow">MODULE // REAL-TIME INGESTION</span>
-            <h2 style="margin: 0; font-size: 1.85rem;">Web & Social Media Feed Monitor</h2>
-            <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">
-                Autonomous multi-vector intelligence monitoring, event triage, and GIS threat telemetry.
-            </p>
-        </div>
-        <div>
-            <a href="/dashboard" class="btn btn-subtle btn-sm">&larr; Return to Dashboard</a>
+{% block title %}Feed Monitoring - Threat Netra{% endblock %}{% block content %}
+<div class="dashboard-user-bar">
+    <div>
+        <span class="eyebrow" style="margin-bottom: 0.25rem;">MODULE // REAL-TIME CTI INGESTION &amp; SCENARIO TRIAGE</span>
+        <h2 style="margin: 0; font-size: 1.5rem; letter-spacing: -0.01em;">Autonomous Threat Feed Monitor</h2>
+        <div class="mono" style="font-size: 0.8125rem; color: var(--text-muted); margin-top: 0.25rem;">
+            OPERATIONAL CLEARANCE: {{ user.role | upper }} &bull; INGESTION ENGINE: TELEGRAM (RSS-BRIDGE) + BING OSINT + VIRUSTOTAL
         </div>
     </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+        <span class="badge" id="monitorStatusBadge" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.75rem;">MONITOR // IDLE</span>
+        <a href="/dashboard" class="btn btn-secondary btn-sm">&larr; Return to Dashboard</a>
+    </div>
+</div>
 
-    <div class="panel">
-        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-            <div>
-                <span class="eyebrow" style="color: var(--status-success);">INGESTION ACTIVE // 24-7 SURVEILLANCE</span>
-                <h3 style="margin: 0;">Multi-Source Feed Ingestion Cluster</h3>
+<!-- FLOATING TOAST CONTAINER -->
+<div id="toastContainer" style="position: fixed; top: 1.5rem; right: 1.5rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.75rem; max-width: 420px; width: 100%; pointer-events: none;"></div>
+
+<!-- MAIN WORKSPACE GRID -->
+<div style="display: grid; grid-template-columns: 380px 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+    <!-- LEFT SIDEBAR: SCAN CONTROLS & VIRUSTOTAL -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- SCAN CONFIGURATION PANEL -->
+        <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                <span class="eyebrow" style="margin: 0;">TELEMETRY CONTROLS</span>
+                <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">SOURCE SELECTOR</span>
             </div>
-            <span class="badge badge-status-live">TELEMETRY LINK // ESTABLISHED</span>
+
+            <form id="monitorForm" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div>
+                    <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">INGESTION CHANNEL</label>
+                    <select id="sourceType" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-family: var(--font-sans); font-size: 0.8125rem;">
+                        <option value="bing">Bing News Search (Real-Time OSINT)</option>
+                        <option value="telegram">Telegram Channel (via RSS-Bridge)</option>
+                    </select>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary);" id="queryLabel">QUERY / SEARCH TARGET</label>
+                    </div>
+                    <input type="text" id="targetQuery" value="ransomware hospital" placeholder="e.g. ransomware or telegram channel handle" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-size: 0.8125rem; font-family: var(--font-mono); box-sizing: border-box;" required />
+                    
+                    <!-- QUERY PRESETS -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;">
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted); align-self: center;">PRESETS:</span>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="ransomware attack" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">Ransomware</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="critical infrastructure cyberattack" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">Critical Infra</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="bing" data-val="zero-day vulnerability exploit" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">Zero-Day CVE</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="telegram" data-val="durov" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">TG: @durov</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-query" data-type="telegram" data-val="tginfo" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">TG: @tginfo</button>
+                    </div>
+                </div>
+
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+                        <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary);">ALERT SCENARIO MATRIX</label>
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">COMMA OR LINE SEPARATED</span>
+                    </div>
+                    <textarea id="scenarioInput" rows="3" placeholder="e.g. Hospital clinical systems shut down by ransomware, Power grid blackout cyber sabotage, Zero-day exploit in edge gateway" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.6rem; font-size: 0.8125rem; font-family: var(--font-sans); resize: vertical; box-sizing: border-box;">Ransomware attack shuts down hospital clinical systems, SCADA power grid sabotage, Zero-day remote code execution in firewalls</textarea>
+                    
+                    <!-- SCENARIO SHORTCUTS -->
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.35rem; margin-top: 0.5rem;">
+                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Healthcare ransomware extortion outage" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Healthcare Ransomware</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="State-sponsored kinetic missile strike" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Kinetic Strike</button>
+                        <button type="button" class="btn btn-subtle btn-sm preset-scenario" data-scen="Water utility treatment plant breach" style="font-size: 0.7rem; padding: 0.2rem 0.45rem;">+ Water Utility APT</button>
+                    </div>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                    <div>
+                        <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">INTERVAL (SEC)</label>
+                        <input type="number" id="pollInterval" value="60" min="10" max="600" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.55rem; font-size: 0.8125rem; font-family: var(--font-mono); box-sizing: border-box;" />
+                    </div>
+                    <div>
+                        <label class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: block; margin-bottom: 0.35rem;">AI INFERENCE ENGINE</label>
+                        <select id="aiProvider" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.55rem; font-family: var(--font-sans); font-size: 0.8125rem;">
+                            <option value="auto">Auto (Groq / Gemma)</option>
+                            <option value="groq">Groq Cloud (High Speed)</option>
+                            <option value="gemma">Gemma (Google AI)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.5rem;">
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="submit" id="startBtn" class="btn btn-primary" style="flex: 1; padding: 0.65rem 1rem; font-size: 0.8125rem; letter-spacing: 0.05em; font-weight: 600;">
+                            START CONTINUOUS MONITOR
+                        </button>
+                        <button type="button" id="stopBtn" class="btn btn-secondary" style="flex: 1; display: none; padding: 0.65rem 1rem; font-size: 0.8125rem; letter-spacing: 0.05em; border-color: var(--status-error); color: var(--status-error);">
+                            STOP MONITORING
+                        </button>
+                    </div>
+                    <button type="button" id="singleRunBtn" class="btn btn-secondary" style="width: 100%; font-size: 0.75rem; padding: 0.45rem;">
+                        RUN SINGLE TRIAGE SCAN NOW
+                    </button>
+                </div>
+            </form>
         </div>
-        <div class="panel-body">
-            <p style="margin-bottom: 2rem;">
-                Continuous pipeline ingesting real-world threat alerts, geopolitical crisis markers, data leak indexes, and cyber attack indicators. Scenarios are evaluated against user-defined threshold matrices.
+
+        <!-- VIRUSTOTAL REPUTATION SCANNER PANEL -->
+        <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
+                <span class="eyebrow" style="margin: 0; color: var(--accent);">VIRUSTOTAL SCANNER</span>
+                <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">IOC REPUTATION</span>
+            </div>
+            
+            <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0 0 0.85rem 0; line-height: 1.45;">
+                Inspect suspicious URLs extracted from raw feeds or paste external observables.
             </p>
 
-            <div style="background-color: var(--bg); border: 1px solid var(--border); padding: 1.5rem;">
-                <span class="eyebrow">ACTIVE INGESTION STREAMS</span>
-                <div class="mono" style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 2;">
-                    <div>&bull; [INTEL/OSINT] Global Conflict & Incident RSS Stream &mdash; <span style="color: var(--status-success);">CONNECTED</span></div>
-                    <div>&bull; [TELECOM/DARKNET] Paste & Breach Dump Crawler Matrix &mdash; <span style="color: var(--status-success);">CONNECTED</span></div>
-                    <div>&bull; [GIS/DISASTER] OpenStreetMap Spatial Threat Vector &mdash; <span style="color: var(--status-success);">CONNECTED</span></div>
+            <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+                <input type="text" id="scanUrlInput" placeholder="https://malicious-domain.com/payload.exe" class="mono" style="width: 100%; background: #000; border: 1px solid var(--border); color: var(--text-primary); padding: 0.55rem; font-size: 0.75rem; box-sizing: border-box;" />
+                <button type="button" id="scanUrlBtn" class="btn btn-secondary btn-sm" style="width: 100%; font-family: var(--font-mono); font-size: 0.75rem;">
+                    SCAN WITH VIRUSTOTAL
+                </button>
+            </div>
+
+            <div id="scanResultArea" style="margin-top: 0.85rem; display: none;"></div>
+        </div>
+
+    </div>
+
+    <!-- RIGHT MAIN WORKSPACE: RAW FEEDS & AI TRIAGE -->
+    <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+        
+        <!-- STATUS / METADATA SUMMARY BAR -->
+        <div style="background: #0A0A0A; border: 1px solid var(--border); padding: 0.85rem 1.25rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div class="mono" style="font-size: 0.75rem; color: var(--text-secondary); display: flex; gap: 1.25rem; align-items: center; flex-wrap: wrap;">
+                <div>INGESTED: <span id="metaFeedCount" style="color: var(--text-primary); font-weight: 600;">0</span> ITEMS</div>
+                <div>TRIAGED: <span id="metaTriagedCount" style="color: var(--text-primary); font-weight: 600;">0</span> ITEMS</div>
+                <div>ALERTS: <span id="metaAlertCount" style="color: var(--status-error); font-weight: 600;">0</span> DETECTED</div>
+                <div id="metaFeedUrlWrap" style="display: none; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    RSS: <a id="metaFeedUrlLink" href="#" target="_blank" style="color: var(--accent); text-decoration: underline;">ENDPOINT</a>
+                </div>
+            </div>
+            <div id="loadingIndicator" style="display: none; align-items: center; gap: 0.5rem;" class="mono">
+                <span style="display: inline-block; width: 8px; height: 8px; background: var(--accent); animation: pulse 1s infinite;"></span>
+                <span style="font-size: 0.75rem; color: var(--accent);" id="loadingStatusText">INGESTING TELEMETRY...</span>
+            </div>
+        </div>
+
+        <!-- AI TRIAGE STREAM (PRIMARY) -->
+        <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem;">
+                <div>
+                    <span class="eyebrow" style="margin: 0;">CTI TRIAGE ASSESSMENT</span>
+                    <h3 style="margin: 0.2rem 0 0 0; font-size: 1.1rem;">AI Intelligence Analysis Stream</h3>
+                </div>
+                <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="triageEngineBadge">ENGINE // DUAL LLM</span>
+            </div>
+
+            <div id="triageResultsContainer" style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="text-align: center; padding: 3rem 1.5rem; border: 1px dashed var(--border); background: #000; color: var(--text-muted);" id="emptyTriageState">
+                    <div class="mono" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.35rem;">AWAITING INGESTION TRIGGER</div>
+                    <div style="font-size: 0.8rem;">Click "Start Continuous Monitor" or "Run Single Triage Scan" to ingest and analyze real-time feeds.</div>
                 </div>
             </div>
         </div>
+
+        <!-- RAW FEEDS INGESTION PANEL (COLLAPSIBLE / LOWER PRIORITY) -->
+        <div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; border-bottom: 1px solid var(--border); padding-bottom: 0.6rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <span class="eyebrow" style="margin: 0;">RAW INGESTION LOG</span>
+                    <span class="badge" style="background: rgba(255,255,255,0.05); font-family: var(--font-mono); font-size: 0.7rem;" id="rawFeedBadge">0 ITEMS</span>
+                </div>
+                <button type="button" id="toggleRawFeedsBtn" class="btn btn-subtle btn-sm" style="font-size: 0.7rem; padding: 0.2rem 0.5rem;">Show / Hide</button>
+            </div>
+
+            <div id="rawFeedsList" style="display: flex; flex-direction: column; gap: 0.75rem; max-height: 280px; overflow-y: auto;">
+                <div style="text-align: center; padding: 1.5rem; color: var(--text-muted); font-size: 0.75rem;" class="mono" id="emptyRawFeedState">
+                    NO RAW TELEMETRY INGESTED YET
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
+
+<!-- VERIFIED ALERT LOG AUDIT TABLE -->
+<div class="tool-card" style="border: 1px solid var(--border); background: #0A0A0A; padding: 1.25rem; margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid var(--border); padding-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+        <div>
+            <span class="eyebrow" style="margin: 0; color: var(--status-error);">INCIDENT AUDIT TRAIL</span>
+            <h3 style="margin: 0.2rem 0 0 0; font-size: 1.1rem;">Verified Scenario Alert Log</h3>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <button type="button" id="clearAlertsBtn" class="btn btn-subtle btn-sm" style="font-size: 0.75rem;">Clear Log</button>
+        </div>
+    </div>
+
+    <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem; text-align: left;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--border); background: #000;" class="mono">
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 140px;">TIMESTAMP</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 120px;">SOURCE</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 260px;">MATCHED SCENARIO</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary);">ITEM HEADLINE</th>
+                    <th style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); width: 100px; text-align: right;">ACTION</th>
+                </tr>
+            </thead>
+            <tbody id="alertLogTableBody">
+                <tr id="emptyAlertLogTr">
+                    <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);" class="mono">
+                        NO HIGH-PRIORITY SCENARIO ALERTS LOGGED YET
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.3; transform: scale(0.9); }
+}
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+.toast-box {
+    animation: slideInRight 0.25s ease-out forwards;
+    pointer-events: auto;
+}
+.feed-url-chip:hover {
+    background: #1A1A1A !important;
+    border-color: var(--accent) !important;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    let monitorTimer = null;
+    let isMonitoring = false;
+    const seenAlertTitles = new Set();
+    let alertCount = 0;
+
+    // Elements
+    const form = document.getElementById('monitorForm');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const singleRunBtn = document.getElementById('singleRunBtn');
+    const sourceType = document.getElementById('sourceType');
+    const targetQuery = document.getElementById('targetQuery');
+    const queryLabel = document.getElementById('queryLabel');
+    const scenarioInput = document.getElementById('scenarioInput');
+    const pollInterval = document.getElementById('pollInterval');
+    const aiProvider = document.getElementById('aiProvider');
+    const monitorStatusBadge = document.getElementById('monitorStatusBadge');
+    
+    const loadingIndicator = document.getElementById('loadingIndicator');
+    const loadingStatusText = document.getElementById('loadingStatusText');
+    const metaFeedCount = document.getElementById('metaFeedCount');
+    const metaTriagedCount = document.getElementById('metaTriagedCount');
+    const metaAlertCount = document.getElementById('metaAlertCount');
+    const metaFeedUrlWrap = document.getElementById('metaFeedUrlWrap');
+    const metaFeedUrlLink = document.getElementById('metaFeedUrlLink');
+    
+    const triageResultsContainer = document.getElementById('triageResultsContainer');
+    const rawFeedsList = document.getElementById('rawFeedsList');
+    const rawFeedBadge = document.getElementById('rawFeedBadge');
+    const alertLogTableBody = document.getElementById('alertLogTableBody');
+    const clearAlertsBtn = document.getElementById('clearAlertsBtn');
+    
+    const scanUrlInput = document.getElementById('scanUrlInput');
+    const scanUrlBtn = document.getElementById('scanUrlBtn');
+    const scanResultArea = document.getElementById('scanResultArea');
+
+    // Request notification permissions
+    if ("Notification" in window && Notification.permission === "default") {
+        Notification.requestPermission();
+    }
+
+    // Dynamic UI helper for source type changes
+    sourceType.addEventListener('change', () => {
+        if (sourceType.value === 'telegram') {
+            queryLabel.innerText = 'TELEGRAM CHANNEL HANDLE';
+            targetQuery.placeholder = 'e.g. durov or @threatintel';
+            if (targetQuery.value.includes(' ') || targetQuery.value.length === 0) {
+                targetQuery.value = 'durov';
+            }
+        } else {
+            queryLabel.innerText = 'BING NEWS SEARCH QUERY';
+            targetQuery.placeholder = 'e.g. ransomware attack or critical infrastructure';
+            if (targetQuery.value === 'durov' || targetQuery.value.length === 0) {
+                targetQuery.value = 'ransomware hospital';
+            }
+        }
+    });
+
+    // Preset query buttons
+    document.querySelectorAll('.preset-query').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const type = btn.getAttribute('data-type');
+            const val = btn.getAttribute('data-val');
+            sourceType.value = type;
+            sourceType.dispatchEvent(new Event('change'));
+            targetQuery.value = val;
+        });
+    });
+
+    // Preset scenario buttons
+    document.querySelectorAll('.preset-scenario').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const scen = btn.getAttribute('data-scen');
+            const current = scenarioInput.value.trim();
+            if (!current) {
+                scenarioInput.value = scen;
+            } else if (!current.includes(scen)) {
+                scenarioInput.value = current + ', ' + scen;
+            }
+        });
+    });
+
+    // Toggle Raw Feeds View
+    document.getElementById('toggleRawFeedsBtn').addEventListener('click', () => {
+        if (rawFeedsList.style.display === 'none') {
+            rawFeedsList.style.display = 'flex';
+        } else {
+            rawFeedsList.style.display = 'none';
+        }
+    });
+
+    // Toast alert builder
+    function showThreatToast(scenario, title) {
+        const container = document.getElementById('toastContainer');
+        const toast = document.createElement('div');
+        toast.className = 'toast-box';
+        toast.style.background = '#0F0404';
+        toast.style.border = '1px solid var(--status-error)';
+        toast.style.borderLeft = '4px solid var(--status-error)';
+        toast.style.padding = '1rem';
+        toast.style.color = '#FFF';
+        toast.style.boxShadow = '0 8px 24px rgba(0,0,0,0.8)';
+        
+        toast.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.4rem;">
+                <span class="mono" style="font-size: 0.75rem; color: var(--status-error); font-weight: 700;">🚨 THREAT SCENARIO MATCH</span>
+                <button type="button" style="background: none; border: none; color: var(--text-muted); cursor: pointer; font-size: 1.1rem; line-height: 1;" onclick="this.closest('.toast-box').remove()">&times;</button>
+            </div>
+            <div style="font-weight: 600; font-size: 0.8125rem; color: #FFF; margin-bottom: 0.25rem;">${escapeHtml(scenario)}</div>
+            <div style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">${escapeHtml(title)}</div>
+        `;
+        
+        container.appendChild(toast);
+        setTimeout(() => { if (toast.parentNode) toast.remove(); }, 12000);
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Core Ingestion & Analysis Routine
+    async function executeTriage() {
+        loadingIndicator.style.display = 'flex';
+        loadingStatusText.innerText = 'INGESTING TELEMETRY...';
+
+        const rawScenarios = scenarioInput.value;
+        const scenarios = rawScenarios
+            .split(/[\n,]/)
+            .map(s => s.trim())
+            .filter(s => s.length > 0);
+
+        const payload = {
+            source_type: sourceType.value,
+            query: targetQuery.value.trim(),
+            scenarios: scenarios,
+            limit: 6,
+            provider: aiProvider.value
+        };
+
+        try {
+            loadingStatusText.innerText = 'RUNNING AI THREAT TRIAGE...';
+            const res = await fetch('/tools/feed_monitor/api/analyze', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Server error HTTP ${res.status}`);
+            }
+
+            const data = await res.json();
+            renderResponse(data);
+        } catch (err) {
+            console.error('Triage failed:', err);
+            triageResultsContainer.innerHTML = `
+                <div style="background: #120606; border: 1px solid var(--status-error); padding: 1.25rem; color: #FFF;">
+                    <div class="mono" style="color: var(--status-error); font-size: 0.8rem; margin-bottom: 0.25rem;">[EXCEPTION // INGESTION ERROR]</div>
+                    <div style="font-size: 0.8125rem;">${escapeHtml(err.message)}</div>
+                </div>
+            `;
+        } finally {
+            loadingIndicator.style.display = 'none';
+        }
+    }
+
+    function renderResponse(data) {
+        const rawFeeds = data.raw_feeds || [];
+        const results = data.results || [];
+        const meta = data.metadata || {};
+
+        // Update top counters
+        metaFeedCount.innerText = rawFeeds.length;
+        metaTriagedCount.innerText = results.length;
+        rawFeedBadge.innerText = `${rawFeeds.length} ITEMS`;
+
+        if (meta.feed_url) {
+            metaFeedUrlWrap.style.display = 'block';
+            metaFeedUrlLink.href = meta.feed_url;
+            metaFeedUrlLink.innerText = meta.feed_url;
+            metaFeedUrlLink.title = meta.feed_url;
+        }
+
+        // Render Raw Feeds
+        if (rawFeeds.length > 0) {
+            rawFeedsList.innerHTML = '';
+            rawFeeds.forEach(item => {
+                const div = document.createElement('div');
+                div.style.background = '#000';
+                div.style.border = '1px solid var(--border)';
+                div.style.padding = '0.75rem';
+                div.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.25rem;">
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer" style="color: var(--text-primary); font-size: 0.8125rem; font-weight: 500; text-decoration: none;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--text-primary)'">${escapeHtml(item.title)}</a>
+                        <span class="mono" style="font-size: 0.65rem; color: var(--text-muted); white-space: nowrap;">${escapeHtml(item.pub_date || '')}</span>
+                    </div>
+                    <p style="margin: 0; font-size: 0.75rem; color: var(--text-secondary); line-height: 1.4;">${escapeHtml(item.description)}</p>
+                `;
+                rawFeedsList.appendChild(div);
+            });
+        }
+
+        // Render AI Triage Cards
+        if (results.length === 0) {
+            triageResultsContainer.innerHTML = `
+                <div style="text-align: center; padding: 2.5rem 1.5rem; border: 1px dashed var(--border); background: #000; color: var(--text-muted);" class="mono">
+                    NO TELEMETRY ITEMS AVAILABLE FOR CURRENT QUERY
+                </div>
+            `;
+            return;
+        }
+
+        triageResultsContainer.innerHTML = '';
+
+        results.forEach(res => {
+            const isMatch = Boolean(res.is_scenario_match && res.scenario_matched);
+            const isThreat = Boolean(res.is_threat || isMatch);
+            const scenarioName = res.scenario_matched || res.matched_scenario_name;
+
+            // Handle alert triggers
+            if (isMatch && scenarioName && !seenAlertTitles.has(res.item_title)) {
+                seenAlertTitles.add(res.item_title);
+                alertCount++;
+                metaAlertCount.innerText = alertCount;
+
+                // Dispatch toast & desktop notification
+                showThreatToast(scenarioName, res.item_title);
+                if ("Notification" in window && Notification.permission === "granted") {
+                    new Notification("🚨 Threat Netra Alert Match", {
+                        body: `${scenarioName}\n\n${res.item_title}`
+                    });
+                }
+
+                // Add to audit table
+                const emptyTr = document.getElementById('emptyAlertLogTr');
+                if (emptyTr) emptyTr.remove();
+
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid var(--border)';
+                tr.innerHTML = `
+                    <td class="mono" style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-muted);">${new Date().toLocaleTimeString()}</td>
+                    <td class="mono" style="padding: 0.75rem; font-size: 0.75rem; color: var(--text-secondary); text-transform: uppercase;">${escapeHtml(meta.source || 'FEED')}</td>
+                    <td style="padding: 0.75rem; font-weight: 600; color: var(--status-error);">${escapeHtml(scenarioName)}</td>
+                    <td style="padding: 0.75rem; color: var(--text-primary);">${escapeHtml(res.item_title)}</td>
+                    <td style="padding: 0.75rem; text-align: right;">
+                        <button type="button" class="btn btn-subtle btn-sm" onclick="this.closest('tr').remove()" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">Dismiss</button>
+                    </td>
+                `;
+                alertLogTableBody.prepend(tr);
+            }
+
+            // Card styling
+            const card = document.createElement('div');
+            card.style.background = '#000';
+            card.style.border = isMatch ? '1px solid var(--status-error)' : (isThreat ? '1px solid #7F4D12' : '1px solid var(--border)');
+            card.style.padding = '1.25rem';
+            card.style.transition = 'border-color 0.15s ease';
+
+            let badgeHtml = '';
+            if (isMatch) {
+                badgeHtml = `<span class="badge" style="background: rgba(248,81,73,0.15); border: 1px solid var(--status-error); color: var(--status-error); font-family: var(--font-mono); font-size: 0.7rem;">🚨 SCENARIO MATCH // ${escapeHtml(scenarioName)}</span>`;
+            } else if (isThreat) {
+                badgeHtml = `<span class="badge" style="background: rgba(210,153,34,0.15); border: 1px solid var(--status-warning); color: var(--status-warning); font-family: var(--font-mono); font-size: 0.7rem;">⚠️ THREAT DETECTED</span>`;
+            } else {
+                badgeHtml = `<span class="badge" style="background: rgba(255,255,255,0.06); border: 1px solid var(--border); color: var(--text-secondary); font-family: var(--font-mono); font-size: 0.7rem;">NOMINAL / INFORMATIONAL</span>`;
+            }
+
+            // Extracted URLs chip buttons
+            let urlsHtml = '';
+            const urls = res.extracted_urls || [];
+            if (urls.length > 0) {
+                const chips = urls.map(u => `
+                    <button type="button" class="feed-url-chip" style="background: #080808; border: 1px solid var(--border); color: var(--accent); padding: 0.25rem 0.5rem; font-family: var(--font-mono); font-size: 0.7rem; cursor: pointer; text-align: left; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="Click to scan with VirusTotal: ${escapeHtml(u)}" onclick="scanTargetUrl('${escapeHtml(u)}')">
+                        🔍 ${escapeHtml(u)}
+                    </button>
+                `).join('');
+
+                urlsHtml = `
+                    <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border);">
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted); display: block; margin-bottom: 0.35rem;">EXTRACTED OBSERVABLES (CLICK TO SCAN):</span>
+                        <div style="display: flex; flex-direction: column; gap: 0.35rem;">${chips}</div>
+                    </div>
+                `;
+            }
+
+            card.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 0.75rem; flex-wrap: wrap;">
+                    <h4 style="margin: 0; font-size: 0.95rem; color: var(--text-primary); flex: 1; line-height: 1.4;">${escapeHtml(res.item_title)}</h4>
+                    <div>${badgeHtml}</div>
+                </div>
+
+                <div style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 0.75rem;">
+                    ${escapeHtml(res.summary)}
+                </div>
+
+                ${res.reasoning ? `
+                <div style="background: #060606; border-left: 2px solid ${isMatch ? 'var(--status-error)' : 'var(--border)'}; padding: 0.6rem 0.85rem; margin-top: 0.5rem;">
+                    <span class="mono" style="font-size: 0.68rem; color: var(--text-muted); display: block; margin-bottom: 0.2rem;">ANALYST RATIONALE // COGNITIVE TRIAGE</span>
+                    <div style="font-size: 0.78rem; color: var(--text-primary); line-height: 1.45;">${escapeHtml(res.reasoning)}</div>
+                </div>
+                ` : ''}
+
+                ${urlsHtml}
+            `;
+
+            triageResultsContainer.appendChild(card);
+        });
+    }
+
+    // Monitoring Start / Stop Logic
+    form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        if (isMonitoring) return;
+
+        isMonitoring = true;
+        startBtn.style.display = 'none';
+        stopBtn.style.display = 'block';
+        
+        monitorStatusBadge.style.background = 'rgba(63,185,80,0.15)';
+        monitorStatusBadge.style.borderColor = 'var(--status-success)';
+        monitorStatusBadge.style.color = 'var(--status-success)';
+        monitorStatusBadge.innerText = 'MONITOR // ACTIVE STREAM';
+
+        const sec = Math.max(10, parseInt(pollInterval.value, 10) || 60);
+
+        executeTriage();
+        monitorTimer = setInterval(executeTriage, sec * 1000);
+    });
+
+    stopBtn.addEventListener('click', () => {
+        if (!isMonitoring) return;
+        isMonitoring = false;
+        if (monitorTimer) clearInterval(monitorTimer);
+        monitorTimer = null;
+
+        startBtn.style.display = 'block';
+        stopBtn.style.display = 'none';
+        
+        monitorStatusBadge.style.background = 'rgba(255,255,255,0.06)';
+        monitorStatusBadge.style.borderColor = 'var(--border)';
+        monitorStatusBadge.style.color = 'var(--text-secondary)';
+        monitorStatusBadge.innerText = 'MONITOR // IDLE';
+        
+        loadingIndicator.style.display = 'none';
+    });
+
+    singleRunBtn.addEventListener('click', () => {
+        executeTriage();
+    });
+
+    clearAlertsBtn.addEventListener('click', () => {
+        alertLogTableBody.innerHTML = `
+            <tr id="emptyAlertLogTr">
+                <td colspan="5" style="padding: 2rem; text-align: center; color: var(--text-muted);" class="mono">
+                    NO HIGH-PRIORITY SCENARIO ALERTS LOGGED YET
+                </td>
+            </tr>
+        `;
+        alertCount = 0;
+        metaAlertCount.innerText = '0';
+        seenAlertTitles.clear();
+    });
+
+    // VirusTotal Scanner
+    window.scanTargetUrl = function(target) {
+        scanUrlInput.value = target;
+        executeVirusTotalScan(target);
+    };
+
+    scanUrlBtn.addEventListener('click', () => {
+        const u = scanUrlInput.value.trim();
+        if (u) executeVirusTotalScan(u);
+    });
+
+    async function executeVirusTotalScan(url) {
+        scanResultArea.style.display = 'block';
+        scanResultArea.innerHTML = `
+            <div class="mono" style="font-size: 0.75rem; color: var(--accent); padding: 0.5rem; background: #000; border: 1px solid var(--border);">
+                SCANNING OBSERVABLE WITH VIRUSTOTAL...
+            </div>
+        `;
+
+        try {
+            const res = await fetch('/tools/feed_monitor/api/scan-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: url })
+            });
+
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.detail || 'Scan failed');
+
+            if (data.status === 'unconfigured') {
+                scanResultArea.innerHTML = `
+                    <div style="background: #000; border: 1px solid var(--border); padding: 0.75rem;">
+                        <span class="mono" style="font-size: 0.7rem; color: var(--status-warning); display: block; margin-bottom: 0.25rem;">KEY NOT CONFIGURED</span>
+                        <div style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 0.5rem;">
+                            Add <code>URL_API=your_virustotal_key</code> to <code>.env</code> to enable direct API scanning.
+                        </div>
+                        <a href="https://www.virustotal.com/gui/search/${encodeURIComponent(url)}" target="_blank" class="btn btn-subtle btn-sm" style="font-size: 0.7rem; display: inline-block;">
+                            Inspect on VirusTotal Web Portal &rarr;
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            if (data.status === 'unscanned') {
+                scanResultArea.innerHTML = `
+                    <div style="background: #000; border: 1px solid var(--border); padding: 0.75rem;">
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem;">UNSCANNED IN VIRUSTOTAL</span>
+                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.5rem;">${escapeHtml(data.message)}</div>
+                        <a href="https://www.virustotal.com/gui/search/${encodeURIComponent(url)}" target="_blank" class="btn btn-subtle btn-sm" style="font-size: 0.7rem; display: inline-block;">
+                            Submit URL to VirusTotal &rarr;
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            if (data.status === 'scanned') {
+                const mal = data.malicious || 0;
+                const susp = data.suspicious || 0;
+                const harm = data.harmless || 0;
+                const undet = data.undetected || 0;
+                const isMal = mal > 0;
+
+                scanResultArea.innerHTML = `
+                    <div style="background: #000; border: 1px solid ${isMal ? 'var(--status-error)' : 'var(--status-success)'}; padding: 0.75rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span class="mono" style="font-size: 0.7rem; color: ${isMal ? 'var(--status-error)' : 'var(--status-success)'}; font-weight: 700;">
+                                ${isMal ? '🚨 MALICIOUS IOC DETECTED' : '✅ CLEAN REPUTATION'}
+                            </span>
+                            <a href="https://www.virustotal.com/gui/search/${encodeURIComponent(url)}" target="_blank" style="font-size: 0.7rem; color: var(--accent); text-decoration: underline;" class="mono">VT Dossier &rarr;</a>
+                        </div>
+                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.25rem; text-align: center; background: #080808; padding: 0.4rem; border: 1px solid var(--border);" class="mono">
+                            <div><span style="font-size: 0.65rem; color: var(--status-error);">MAL</span><br><strong style="font-size: 0.85rem; color: var(--status-error);">${mal}</strong></div>
+                            <div><span style="font-size: 0.65rem; color: var(--status-warning);">SUSP</span><br><strong style="font-size: 0.85rem; color: var(--status-warning);">${susp}</strong></div>
+                            <div><span style="font-size: 0.65rem; color: var(--status-success);">HARM</span><br><strong style="font-size: 0.85rem; color: var(--status-success);">${harm}</strong></div>
+                            <div><span style="font-size: 0.65rem; color: var(--text-muted);">UNDET</span><br><strong style="font-size: 0.85rem; color: var(--text-muted);">${undet}</strong></div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            scanResultArea.innerHTML = `
+                <div style="background: #000; border: 1px solid var(--border); padding: 0.75rem; color: var(--status-error); font-size: 0.75rem;">
+                    ${escapeHtml(data.message || 'Scanning error occurred.')}
+                </div>
+            `;
+        } catch (e) {
+            scanResultArea.innerHTML = `
+                <div style="background: #000; border: 1px solid var(--status-error); padding: 0.75rem; color: var(--status-error); font-size: 0.75rem;">
+                    ${escapeHtml(e.message)}
+                </div>
+            `;
+        }
+    }
+});
+</script>
 {% endblock %}

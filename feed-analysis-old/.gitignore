@@ -1,9 +1,0 @@
-.venv/
-env/
-venv/
-__pycache__/
-*.py[cod]
-*$py.class
-.env
-.DS_Store
-*.sqlite3
