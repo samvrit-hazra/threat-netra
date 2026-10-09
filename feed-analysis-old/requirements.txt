@@ -1,0 +1,25 @@
+# Framework & Server
+fastapi
+uvicorn[standard]
+pydantic>=2.9.0
+pydantic-settings
+
+# AI / Threat Intelligence
+google-genai
+
+# HTTP Clients (for fetching RSS feeds & webhooks)
+httpx
+beautifulsoup4
+
+# Database & ORM
+sqlalchemy
+alembic
+asyncpg>=0.30.0
+
+# Utilities
+python-dotenv
+python-multipart
+
+# (Optional) Threat Intel Standards
+stix2feedparser
+groq

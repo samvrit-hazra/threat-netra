@@ -22,7 +22,7 @@
     <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); padding-bottom: 1rem;">
         <div>
             <span class="eyebrow" style="margin-bottom: 0.25rem;">TELEMETRY INGESTION</span>
-            <h3 style="margin: 0; font-size: 1.15rem;">Select Scenario or Ingest Custom Log Streams</h3>
+            <h3 style="margin: 0; font-size: 1.15rem;">Select Scenario, Upload File, or Stream Continuously via Agent</h3>
         </div>
         <!-- PRESET ATTACK SAMPLES -->
         <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
@@ -35,9 +35,10 @@
     </div>
 
     <!-- TABS -->
-    <div style="display: flex; gap: 1rem; border-bottom: 1px solid var(--border); margin-bottom: 1rem;">
+    <div style="display: flex; gap: 0.5rem; border-bottom: 1px solid var(--border); margin-bottom: 1.25rem; flex-wrap: wrap;">
         <button id="tabPasteBtn" class="btn btn-sm btn-primary" style="border-bottom: 2px solid var(--accent); border-radius: 0;">Direct Text / Paste</button>
         <button id="tabUploadBtn" class="btn btn-sm btn-subtle" style="border-radius: 0;">File Upload (.log, .txt, .json)</button>
+        <button id="tabAgentBtn" class="btn btn-sm btn-subtle" style="border-radius: 0; border: 1px solid var(--border);">Continuous Agent (Linux / Windows)</button>
     </div>
 
     <!-- PASTE TAB CONTENT -->
@@ -56,6 +57,109 @@
         </div>
     </div>
 
+    <!-- CONTINUOUS AGENT TAB CONTENT -->
+    <div id="tabAgentContent" style="display: none;">
+        <!-- SECRET INGESTION API URL CARD -->
+        <div style="background: #06080A; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.5rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem;">
+                <div>
+                    <span class="eyebrow" style="margin-bottom: 0.25rem;">TELEMETRY ENDPOINT</span>
+                    <h4 style="margin: 0; font-size: 1.05rem;">Your Secret Ingestion API URL</h4>
+                </div>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button type="button" id="copySecretUrlBtn" class="btn btn-primary btn-sm">Copy Secret URL</button>
+                    <button type="button" id="regenerateKeyBtn" class="btn btn-subtle btn-sm">Regenerate Key</button>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 0.75rem;">
+                <input type="text" id="secretApiUrlInput" readonly value="{{ secret_ingest_url }}" class="mono" style="flex: 1; background: #000; border: 1px solid var(--border); color: var(--accent); padding: 0.65rem 0.9rem; font-size: 0.8125rem; letter-spacing: 0.04em;" />
+            </div>
+            
+            <p style="font-size: 0.8125rem; color: var(--text-muted); margin: 0; line-height: 1.5;">
+                Forwarder scripts send ongoing log chunks to this secure endpoint via HTTP POST. No browser login required for the forwarder scripts.
+            </p>
+        </div>
+
+        <!-- PLATFORM SCRIPTS ROW -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem;">
+            <!-- LINUX / UNIX FORWARDER -->
+            <div style="background: #080808; border: 1px solid var(--border); padding: 1.25rem; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span class="eyebrow" style="margin: 0;">LINUX / UNIX SHELL AGENT</span>
+                    <span class="badge badge-normal">BASH SCRIPT</span>
+                </div>
+                <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1rem; flex: 1;">
+                    Continuously tails <code>/var/log/auth.log</code>, <code>/var/log/syslog</code>, Nginx, or custom files. Remembers line position and handles log rotations cleanly.
+                </p>
+                <div style="background: #000; border: 1px solid var(--border); padding: 0.6rem; font-size: 0.75rem; color: #BBB; margin-bottom: 1rem; overflow-x: auto;" class="mono" id="linuxQuickCmd">
+                    curl -sO {{ request.base_url }}tools/logs_analyze/scripts/threatnetra-agent.sh &amp;&amp; chmod +x threatnetra-agent.sh &amp;&amp; ./threatnetra-agent.sh --url "{{ secret_ingest_url }}"
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <a href="/tools/logs_analyze/scripts/threatnetra-agent.sh" download="threatnetra-agent.sh" class="btn btn-secondary btn-sm">Download .sh</a>
+                    <button type="button" id="copyLinuxCmdBtn" class="btn btn-subtle btn-sm">Copy Command</button>
+                </div>
+            </div>
+
+            <!-- WINDOWS POWERSHELL FORWARDER -->
+            <div style="background: #080808; border: 1px solid var(--border); padding: 1.25rem; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <span class="eyebrow" style="margin: 0;">WINDOWS FORWARDER</span>
+                    <span class="badge badge-normal">POWERSHELL / BATCH</span>
+                </div>
+                <p style="font-size: 0.8125rem; color: var(--text-secondary); margin-bottom: 1rem; flex: 1;">
+                    Tails Windows Security Event Log (EventID 4625, 4720, 7045) or local log files using PowerShell. Prompts for Secret URL or accepts <code>-ApiUrl</code> flag.
+                </p>
+                <div style="background: #000; border: 1px solid var(--border); padding: 0.6rem; font-size: 0.75rem; color: #BBB; margin-bottom: 1rem; overflow-x: auto;" class="mono" id="windowsQuickCmd">
+                    powershell -Command "Invoke-WebRequest -Uri '{{ request.base_url }}tools/logs_analyze/scripts/threatnetra-agent.ps1' -OutFile 'threatnetra-agent.ps1'; .\threatnetra-agent.ps1 -ApiUrl '{{ secret_ingest_url }}'"
+                </div>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <a href="/tools/logs_analyze/scripts/threatnetra-agent.ps1" download="threatnetra-agent.ps1" class="btn btn-secondary btn-sm">Download .ps1</a>
+                    <a href="/tools/logs_analyze/scripts/threatnetra-agent.bat" download="threatnetra-agent.bat" class="btn btn-subtle btn-sm">Download .bat</a>
+                    <button type="button" id="copyWinCmdBtn" class="btn btn-subtle btn-sm">Copy Command</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- LIVE AGENT STREAM MONITORING STRIP -->
+        <div style="background: #050709; border: 1px solid var(--border); padding: 1.25rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                    <span class="badge badge-status-live" id="streamStatusBadge">STREAM // LISTENING</span>
+                    <span class="mono" style="font-size: 0.8125rem; color: var(--text-secondary);">Live Forwarder Status</span>
+                </div>
+                <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+                    <label style="display: inline-flex; align-items: center; gap: 0.5rem; font-size: 0.75rem; color: var(--text-secondary); cursor: pointer; margin-right: 0.5rem;" class="mono">
+                        <input type="checkbox" id="autoSyncToggle" checked style="accent-color: var(--accent);" />
+                        Auto-Sync Live Stream (every 4s)
+                    </label>
+                    <button type="button" id="loadStreamDataBtn" class="btn btn-secondary btn-sm">Sync Stream Now</button>
+                    <button type="button" id="clearStreamBtn" class="btn btn-subtle btn-sm">Clear Stream Buffer</button>
+                </div>
+            </div>
+
+            <!-- STREAM TELEMETRY METRICS -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <div>
+                    <span class="mono" style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase;">FORWARDED LINES</span>
+                    <div id="streamLinesDisplay" class="mono" style="font-size: 1.25rem; font-weight: 600; color: #FFF; margin-top: 0.2rem;">0</div>
+                </div>
+                <div>
+                    <span class="mono" style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase;">BATCHES RECEIVED</span>
+                    <div id="streamBatchesDisplay" class="mono" style="font-size: 1.25rem; font-weight: 600; color: #FFF; margin-top: 0.2rem;">0</div>
+                </div>
+                <div>
+                    <span class="mono" style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase;">LAST INGESTION</span>
+                    <div id="streamTimeDisplay" class="mono" style="font-size: 0.8125rem; color: var(--text-secondary); margin-top: 0.4rem;">Awaiting agent...</div>
+                </div>
+                <div>
+                    <span class="mono" style="font-size: 0.6875rem; color: var(--text-muted); text-transform: uppercase;">FORWARDER IP</span>
+                    <div id="streamIpDisplay" class="mono" style="font-size: 0.8125rem; color: var(--accent); margin-top: 0.4rem;">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ACTION ROW -->
     <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; flex-wrap: wrap; gap: 1rem;">
         <div id="ingestStats" class="mono" style="font-size: 0.8125rem; color: var(--text-muted);">
@@ -65,7 +169,7 @@
             <button id="clearBtn" class="btn btn-subtle btn-sm">Clear Input</button>
             <button id="analyzeBtn" class="btn btn-primary btn-sm">
                 <span id="analyzeSpinner" style="display: none;">Analyzing... </span>
-                <span>Analyze Logs &amp; Detect Threats &rarr;</span>
+                <span id="analyzeBtnLabel">Analyze Logs &amp; Detect Threats &rarr;</span>
             </button>
         </div>
     </div>
@@ -132,13 +236,18 @@
     </div>
 
     <!-- AI FORENSIC INTELLIGENCE ASSESSMENT -->
-    <div class="tool-card" style="margin-bottom: 1.75rem; border-color: var(--accent);">
+    <div class="tool-card" style="margin-bottom: 1.75rem; border-color: var(--border);">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 1rem;">
             <div>
                 <span class="eyebrow" style="color: var(--accent); margin-bottom: 0.25rem;">NEURAL RECONSTRUCTION</span>
                 <h3 style="margin: 0; font-size: 1.15rem;">AI Forensic Incident Assessment (Gemma / Groq)</h3>
             </div>
-            <div style="display: flex; gap: 0.75rem;">
+            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center;">
+                <!-- TOP QUICK ACTIONS FOR GENERATED REPORT -->
+                <div id="aiReportTopActions" style="display: none; gap: 0.5rem; align-items: center;">
+                    <button type="button" id="topCopyAiReportBtn" class="btn btn-subtle btn-sm">Copy Markdown</button>
+                    <button type="button" id="topDownloadAiReportBtn" class="btn btn-secondary btn-sm">Download (.md)</button>
+                </div>
                 <button id="generateAiReportBtn" class="btn btn-secondary btn-sm">
                     <span id="aiSpinner" style="display: none;">Generating Assessment... </span>
                     <span>Generate AI Incident Report &rarr;</span>
@@ -151,7 +260,14 @@
         </div>
 
         <div id="aiReportContent" style="display: none; padding: 1.25rem; background: #080808; border: 1px solid var(--border); line-height: 1.6; font-size: 0.875rem; color: #E5E5E5;">
-            <div id="aiReportMetadata" class="mono" style="font-size: 0.75rem; color: var(--accent); margin-bottom: 1rem; padding-bottom: 0.5rem; border-bottom: 1px solid var(--border);"></div>
+            <!-- REPORT ACTION TOOLBAR -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.75rem;">
+                <div id="aiReportMetadata" class="mono" style="font-size: 0.75rem; color: var(--accent);"></div>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button type="button" id="copyAiReportBtn" class="btn btn-subtle btn-sm">Copy Markdown</button>
+                    <button type="button" id="downloadAiReportBtn" class="btn btn-primary btn-sm">Download (.md)</button>
+                </div>
+            </div>
             <div id="aiReportMarkdown" style="white-space: pre-wrap; font-family: var(--font-sans);"></div>
         </div>
     </div>
@@ -191,29 +307,63 @@
 document.addEventListener("DOMContentLoaded", function () {
     let currentAnalysisData = null;
     let rawLogCache = "";
+    let autoSyncTimer = null;
+    let lastKnownBatches = 0;
+    let currentAiReportMarkdown = "";
 
-    // Tab switching
+    // Tabs
     const tabPasteBtn = document.getElementById("tabPasteBtn");
     const tabUploadBtn = document.getElementById("tabUploadBtn");
+    const tabAgentBtn = document.getElementById("tabAgentBtn");
     const tabPasteContent = document.getElementById("tabPasteContent");
     const tabUploadContent = document.getElementById("tabUploadContent");
+    const tabAgentContent = document.getElementById("tabAgentContent");
+    const analyzeBtn = document.getElementById("analyzeBtn");
+    const analyzeBtnLabel = document.getElementById("analyzeBtnLabel");
+    const analyzeSpinner = document.getElementById("analyzeSpinner");
+
+    function updateButtonLabel() {
+        if (!analyzeBtnLabel) return;
+        if (tabAgentContent && tabAgentContent.style.display !== "none") {
+            analyzeBtnLabel.innerHTML = "Analyze Streamed Agent Logs &rarr;";
+        } else if (tabUploadContent && tabUploadContent.style.display !== "none") {
+            analyzeBtnLabel.innerHTML = "Analyze Uploaded File &rarr;";
+        } else {
+            analyzeBtnLabel.innerHTML = "Analyze Logs &amp; Detect Threats &rarr;";
+        }
+    }
+
+    function resetTabStyles() {
+        [tabPasteBtn, tabUploadBtn, tabAgentBtn].forEach(btn => {
+            btn.className = "btn btn-sm btn-subtle";
+            btn.style.borderBottom = "none";
+        });
+        [tabPasteContent, tabUploadContent, tabAgentContent].forEach(c => c.style.display = "none");
+    }
 
     tabPasteBtn.addEventListener("click", () => {
+        resetTabStyles();
         tabPasteBtn.className = "btn btn-sm btn-primary";
         tabPasteBtn.style.borderBottom = "2px solid var(--accent)";
-        tabUploadBtn.className = "btn btn-sm btn-subtle";
-        tabUploadBtn.style.borderBottom = "none";
         tabPasteContent.style.display = "block";
-        tabUploadContent.style.display = "none";
+        updateButtonLabel();
     });
 
     tabUploadBtn.addEventListener("click", () => {
+        resetTabStyles();
         tabUploadBtn.className = "btn btn-sm btn-primary";
         tabUploadBtn.style.borderBottom = "2px solid var(--accent)";
-        tabPasteBtn.className = "btn btn-sm btn-subtle";
-        tabPasteBtn.style.borderBottom = "none";
         tabUploadContent.style.display = "block";
-        tabPasteContent.style.display = "none";
+        updateButtonLabel();
+    });
+
+    tabAgentBtn.addEventListener("click", () => {
+        resetTabStyles();
+        tabAgentBtn.className = "btn btn-sm btn-primary";
+        tabAgentBtn.style.borderBottom = "2px solid var(--accent)";
+        tabAgentContent.style.display = "block";
+        updateButtonLabel();
+        refreshAgentConfig();
     });
 
     // File Drag and Drop
@@ -248,7 +398,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const reader = new FileReader();
         reader.onload = (e) => {
             document.getElementById("logInput").value = e.target.result;
-            tabPasteBtn.click(); // switch back to view
+            tabPasteBtn.click();
         };
         reader.readAsText(file);
     }
@@ -278,20 +428,61 @@ document.addEventListener("DOMContentLoaded", function () {
         document.getElementById("ingestStats").textContent = "Cleared input.";
     });
 
-    // Analyze Button
-    const analyzeBtn = document.getElementById("analyzeBtn");
-    const analyzeSpinner = document.getElementById("analyzeSpinner");
-
+    // -------------------------------------------------------------------------
+    // MAIN ANALYZE BUTTON (HANDLES BOTH STREAM & MANUAL INPUT)
+    // -------------------------------------------------------------------------
     analyzeBtn.addEventListener("click", async () => {
         const rawLogs = document.getElementById("logInput").value.trim();
-        if (!rawLogs) {
-            alert("Please paste or upload log content first.");
-            return;
-        }
+        const isAgentTab = tabAgentContent && tabAgentContent.style.display !== "none";
 
-        rawLogCache = rawLogs;
         analyzeBtn.disabled = true;
         analyzeSpinner.style.display = "inline";
+
+        // If on Agent tab OR if manual input is empty, attempt to analyze live streamed logs
+        if (isAgentTab || !rawLogs) {
+            try {
+                const streamResp = await fetch("/tools/logs_analyze/api/agent/live-stream");
+                if (streamResp.ok) {
+                    const streamData = await streamResp.json();
+                    if (streamData.has_data && streamData.total_lines_streamed > 0) {
+                        currentAnalysisData = {
+                            format: "stream_forwarder",
+                            total_lines: streamData.total_lines_streamed,
+                            events: streamData.events || [],
+                            forensics: streamData.forensics || {}
+                        };
+                        rawLogCache = streamData.latest_raw_snippet || (streamData.events || []).map(e => e.raw || e.message).join("\n");
+                        renderForensicResults(currentAnalysisData);
+                        document.getElementById("ingestStats").textContent =
+                            `Live stream analyzed: ${streamData.total_lines_streamed} lines across ${streamData.total_batches} batches.`;
+                        analyzeBtn.disabled = false;
+                        analyzeSpinner.style.display = "none";
+                        return;
+                    }
+                }
+            } catch (err) {
+                console.warn("Could not fetch stream data:", err);
+            }
+
+            // If user clicked analyze on the agent tab but no stream logs arrived yet
+            if (isAgentTab) {
+                alert("No streamed logs received from the forwarder agent yet.\n\nStart the Linux (.sh) or Windows (.ps1) agent script using your Secret Ingestion URL to stream logs.");
+                analyzeBtn.disabled = false;
+                analyzeSpinner.style.display = "none";
+                return;
+            }
+
+            // If user clicked analyze on paste/upload tab and input is empty
+            if (!rawLogs) {
+                alert("Please paste log content, browse a file, or forward logs using the Continuous Agent script.");
+                analyzeBtn.disabled = false;
+                analyzeSpinner.style.display = "none";
+                return;
+            }
+        }
+
+        // Manual Input / Uploaded file analysis
+        rawLogCache = rawLogs;
 
         try {
             const resp = await fetch("/tools/logs_analyze/api/analyze", {
@@ -316,6 +507,181 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // -------------------------------------------------------------------------
+    // CONTINUOUS AGENT HANDLERS & TELEMETRY STREAM
+    // -------------------------------------------------------------------------
+    const secretApiUrlInput = document.getElementById("secretApiUrlInput");
+    const copySecretUrlBtn = document.getElementById("copySecretUrlBtn");
+    const regenerateKeyBtn = document.getElementById("regenerateKeyBtn");
+    const copyLinuxCmdBtn = document.getElementById("copyLinuxCmdBtn");
+    const copyWinCmdBtn = document.getElementById("copyWinCmdBtn");
+    const autoSyncToggle = document.getElementById("autoSyncToggle");
+    const loadStreamDataBtn = document.getElementById("loadStreamDataBtn");
+    const clearStreamBtn = document.getElementById("clearStreamBtn");
+
+    copySecretUrlBtn.addEventListener("click", () => {
+        secretApiUrlInput.select();
+        navigator.clipboard.writeText(secretApiUrlInput.value).then(() => {
+            const originalText = copySecretUrlBtn.textContent;
+            copySecretUrlBtn.textContent = "✓ Copied!";
+            setTimeout(() => { copySecretUrlBtn.textContent = originalText; }, 2000);
+        });
+    });
+
+    copyLinuxCmdBtn.addEventListener("click", () => {
+        const cmd = document.getElementById("linuxQuickCmd").textContent.trim();
+        navigator.clipboard.writeText(cmd).then(() => {
+            copyLinuxCmdBtn.textContent = "✓ Copied!";
+            setTimeout(() => { copyLinuxCmdBtn.textContent = "Copy Command"; }, 2000);
+        });
+    });
+
+    copyWinCmdBtn.addEventListener("click", () => {
+        const cmd = document.getElementById("windowsQuickCmd").textContent.trim();
+        navigator.clipboard.writeText(cmd).then(() => {
+            copyWinCmdBtn.textContent = "✓ Copied!";
+            setTimeout(() => { copyWinCmdBtn.textContent = "Copy Command"; }, 2000);
+        });
+    });
+
+    regenerateKeyBtn.addEventListener("click", async () => {
+        if (!confirm("Regenerate Secret Ingestion Key? Running forwarder scripts will need to be updated with the new URL.")) return;
+        try {
+            const resp = await fetch("/tools/logs_analyze/api/agent/regenerate-token", { method: "POST" });
+            if (!resp.ok) throw new Error("Could not regenerate token.");
+            const data = await resp.json();
+            secretApiUrlInput.value = data.secret_url;
+            updateQuickCommands(data.secret_url);
+            alert("New Secret Key generated successfully.");
+        } catch (err) {
+            alert("Error: " + err.message);
+        }
+    });
+
+    function updateQuickCommands(url) {
+        const host = window.location.origin;
+        document.getElementById("linuxQuickCmd").textContent =
+            `curl -sO ${host}/tools/logs_analyze/scripts/threatnetra-agent.sh && chmod +x threatnetra-agent.sh && ./threatnetra-agent.sh --url "${url}"`;
+        document.getElementById("windowsQuickCmd").textContent =
+            `powershell -Command "Invoke-WebRequest -Uri '${host}/tools/logs_analyze/scripts/threatnetra-agent.ps1' -OutFile 'threatnetra-agent.ps1'; .\\threatnetra-agent.ps1 -ApiUrl '${url}'"`;
+    }
+
+    async function refreshAgentConfig() {
+        try {
+            const resp = await fetch("/tools/logs_analyze/api/agent/config");
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (data.secret_url) {
+                secretApiUrlInput.value = data.secret_url;
+                updateQuickCommands(data.secret_url);
+            }
+            document.getElementById("streamLinesDisplay").textContent = data.total_lines_streamed || 0;
+            document.getElementById("streamBatchesDisplay").textContent = data.total_batches || 0;
+            if (data.last_ingested_at) {
+                const date = new Date(data.last_ingested_at);
+                document.getElementById("streamTimeDisplay").textContent = date.toLocaleTimeString() + " (" + date.toLocaleDateString() + ")";
+            }
+            if (data.last_client_ip) {
+                document.getElementById("streamIpDisplay").textContent = data.last_client_ip;
+            }
+        } catch (e) {
+            console.error("Config refresh failed", e);
+        }
+    }
+
+    // Poll live stream buffer from forwarder agents
+    async function pollLiveStream() {
+        try {
+            const resp = await fetch("/tools/logs_analyze/api/agent/live-stream");
+            if (!resp.ok) return;
+            const data = await resp.json();
+
+            const statusBadge = document.getElementById("streamStatusBadge");
+            if (data.has_data) {
+                statusBadge.className = "badge badge-status-live";
+                statusBadge.textContent = "STREAM // ACTIVE (" + data.total_batches + " BATCHES)";
+                document.getElementById("streamLinesDisplay").textContent = data.total_lines_streamed || 0;
+                document.getElementById("streamBatchesDisplay").textContent = data.total_batches || 0;
+
+                if (data.last_ingested_at) {
+                    const date = new Date(data.last_ingested_at);
+                    document.getElementById("streamTimeDisplay").textContent = date.toLocaleTimeString();
+                }
+                if (data.last_client_ip) {
+                    document.getElementById("streamIpDisplay").textContent = data.last_client_ip;
+                }
+
+                // If new batch received and auto-sync is on, automatically render in analyzer!
+                if (autoSyncToggle.checked && data.total_batches !== lastKnownBatches) {
+                    lastKnownBatches = data.total_batches;
+                    currentAnalysisData = {
+                        format: "stream_forwarder",
+                        total_lines: data.total_lines_streamed,
+                        events: data.events || [],
+                        forensics: data.forensics || {}
+                    };
+                    rawLogCache = data.latest_raw_snippet || (data.events || []).map(e => e.raw || e.message).join("\n");
+                    renderForensicResults(currentAnalysisData);
+                    document.getElementById("ingestStats").textContent =
+                        `Live agent stream synced: ${data.total_lines_streamed} lines from ${data.last_client_ip || 'agent'}`;
+                }
+            } else {
+                statusBadge.className = "badge badge-normal";
+                statusBadge.textContent = "STREAM // IDLE";
+            }
+        } catch (err) {
+            console.warn("Poll stream error:", err);
+        }
+    }
+
+    loadStreamDataBtn.addEventListener("click", async () => {
+        try {
+            const resp = await fetch("/tools/logs_analyze/api/agent/live-stream");
+            if (!resp.ok) throw new Error("Could not fetch stream data.");
+            const data = await resp.json();
+            if (!data.has_data) {
+                alert("No stream data received yet. Start the Linux/Windows script forwarder first.");
+                return;
+            }
+            currentAnalysisData = {
+                format: "stream_forwarder",
+                total_lines: data.total_lines_streamed,
+                events: data.events || [],
+                forensics: data.forensics || {}
+            };
+            rawLogCache = data.latest_raw_snippet || (data.events || []).map(e => e.raw || e.message).join("\n");
+            renderForensicResults(currentAnalysisData);
+            document.getElementById("ingestStats").textContent =
+                `Loaded live stream telemetry: ${data.total_lines_streamed} events across ${data.total_batches} batches.`;
+        } catch (err) {
+            alert("Error loading stream data: " + err.message);
+        }
+    });
+
+    clearStreamBtn.addEventListener("click", async () => {
+        if (!confirm("Clear live stream telemetry buffer?")) return;
+        try {
+            await fetch("/tools/logs_analyze/api/agent/clear-stream", { method: "POST" });
+            lastKnownBatches = 0;
+            document.getElementById("streamLinesDisplay").textContent = "0";
+            document.getElementById("streamBatchesDisplay").textContent = "0";
+            document.getElementById("streamTimeDisplay").textContent = "Awaiting agent...";
+            document.getElementById("streamIpDisplay").textContent = "-";
+            document.getElementById("streamStatusBadge").textContent = "STREAM // IDLE";
+            document.getElementById("streamStatusBadge").className = "badge badge-normal";
+            alert("Stream buffer cleared.");
+        } catch (err) {
+            alert("Error clearing buffer: " + err.message);
+        }
+    });
+
+    // Start background polling for agent stream
+    autoSyncTimer = setInterval(pollLiveStream, 4000);
+    pollLiveStream();
+
+    // -------------------------------------------------------------------------
+    // RENDER FUNCTIONS (FORENSICS & TELEMETRY)
+    // -------------------------------------------------------------------------
     function renderForensicResults(data) {
         document.getElementById("forensicResults").style.display = "block";
         const f = data.forensics || {};
@@ -329,8 +695,8 @@ document.addEventListener("DOMContentLoaded", function () {
         else levelEl.style.color = "var(--status-success)";
 
         document.getElementById("metricThreatScore").textContent = `Threat Score: ${f.threat_score || 0}/100`;
-        document.getElementById("metricTotalEvents").textContent = data.total_lines || 0;
-        document.getElementById("metricFormat").textContent = `Format: ${(data.format || 'unknown').toUpperCase()}`;
+        document.getElementById("metricTotalEvents").textContent = data.total_lines || (data.events ? data.events.length : 0);
+        document.getElementById("metricFormat").textContent = `Format: ${(data.format || 'detected').toUpperCase()}`;
         document.getElementById("metricFindings").textContent = f.total_findings || 0;
         document.getElementById("metricCriticalCount").textContent = `${f.critical_count || 0} Critical &bull; ${f.high_count || 0} High`;
         document.getElementById("metricHostileIps").textContent = (f.suspicious_ips || []).length;
@@ -396,9 +762,6 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Normalized Telemetry Table
         renderTelemetryTable(data.events || []);
-
-        // Scroll to results
-        document.getElementById("forensicResults").scrollIntoView({ behavior: "smooth" });
     }
 
     function renderTelemetryTable(events) {
@@ -438,13 +801,60 @@ document.addEventListener("DOMContentLoaded", function () {
         renderTelemetryTable(filtered);
     });
 
-    // AI Report Generation
+    // -------------------------------------------------------------------------
+    // AI INCIDENT REPORT GENERATION & EXPORT (COPY & DOWNLOAD)
+    // -------------------------------------------------------------------------
     const generateAiReportBtn = document.getElementById("generateAiReportBtn");
     const aiSpinner = document.getElementById("aiSpinner");
+    const aiReportTopActions = document.getElementById("aiReportTopActions");
+    const copyAiReportBtn = document.getElementById("copyAiReportBtn");
+    const downloadAiReportBtn = document.getElementById("downloadAiReportBtn");
+    const topCopyAiReportBtn = document.getElementById("topCopyAiReportBtn");
+    const topDownloadAiReportBtn = document.getElementById("topDownloadAiReportBtn");
+
+    function copyReportToClipboard() {
+        if (!currentAiReportMarkdown) {
+            alert("No AI incident report generated yet.");
+            return;
+        }
+        navigator.clipboard.writeText(currentAiReportMarkdown).then(() => {
+            [copyAiReportBtn, topCopyAiReportBtn].forEach(btn => {
+                if (btn) {
+                    const original = btn.textContent;
+                    btn.textContent = "✓ Copied!";
+                    setTimeout(() => { btn.textContent = original; }, 2000);
+                }
+            });
+        }).catch(err => {
+            alert("Failed to copy to clipboard: " + err);
+        });
+    }
+
+    function downloadReportAsMarkdown() {
+        if (!currentAiReportMarkdown) {
+            alert("No AI incident report generated yet.");
+            return;
+        }
+        const blob = new Blob([currentAiReportMarkdown], { type: "text/markdown;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        const ts = new Date().toISOString().replace(/[:.]/g, "-");
+        a.href = url;
+        a.download = `threat_netra_incident_report_${ts}.md`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    if (copyAiReportBtn) copyAiReportBtn.addEventListener("click", copyReportToClipboard);
+    if (topCopyAiReportBtn) topCopyAiReportBtn.addEventListener("click", copyReportToClipboard);
+    if (downloadAiReportBtn) downloadAiReportBtn.addEventListener("click", downloadReportAsMarkdown);
+    if (topDownloadAiReportBtn) topDownloadAiReportBtn.addEventListener("click", downloadReportAsMarkdown);
 
     generateAiReportBtn.addEventListener("click", async () => {
         if (!currentAnalysisData) {
-            alert("Run log analysis first.");
+            alert("Run log analysis or sync stream first.");
             return;
         }
 
@@ -452,12 +862,13 @@ document.addEventListener("DOMContentLoaded", function () {
         aiSpinner.style.display = "inline";
 
         try {
+            const snippet = rawLogCache ? rawLogCache.slice(0, 2500) : (currentAnalysisData.events || []).map(e => e.raw || e.message).join("\n").slice(0, 2500);
             const resp = await fetch("/tools/logs_analyze/api/ai-diagnose", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     summary: currentAnalysisData.forensics,
-                    sample_snippet: rawLogCache.slice(0, 2500)
+                    sample_snippet: snippet
                 })
             });
 
@@ -469,13 +880,19 @@ document.addEventListener("DOMContentLoaded", function () {
             const data = await resp.json();
             const report = data.ai_report || {};
 
+            currentAiReportMarkdown = report.report_markdown || "";
+
             document.getElementById("aiReportPlaceholder").style.display = "none";
             const reportContent = document.getElementById("aiReportContent");
             reportContent.style.display = "block";
+            if (aiReportTopActions) aiReportTopActions.style.display = "flex";
 
             document.getElementById("aiReportMetadata").textContent =
                 `PROVIDER: ${report.provider || 'Gemma'} // MODEL: ${report.model || 'Default'} // LATENCY: ${report.latency_sec || 0}s`;
-            document.getElementById("aiReportMarkdown").textContent = report.report_markdown || "No assessment generated.";
+            document.getElementById("aiReportMarkdown").textContent = currentAiReportMarkdown || "No assessment generated.";
+
+            // Smooth scroll to the generated report
+            reportContent.scrollIntoView({ behavior: "smooth" });
         } catch (err) {
             alert("AI forensic analysis error: " + err.message);
         } finally {

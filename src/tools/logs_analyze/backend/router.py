@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form
-from fastapi.responses import HTMLResponse, JSONResponse
+import os
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Form, Query
+from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 from typing import Optional, List, Dict, Any
@@ -8,9 +9,12 @@ from src.auth.backend.dependencies import require_approved_user
 from src.tools.logs_analyze.backend.parser import LogParser
 from src.tools.logs_analyze.backend.detector import ThreatDetector
 from src.tools.logs_analyze.backend.ai_service import AIForensicService
+from src.tools.logs_analyze.backend.ingest_store import IngestStore
 
 router = APIRouter(prefix="/tools/logs_analyze", tags=["logs_analyze"])
 templates = Jinja2Templates(directory="src")
+
+SCRIPTS_DIR = os.path.join(os.path.dirname(__file__), "..", "scripts")
 
 # Predefined realistic attack samples for instant evaluation
 SAMPLES = {
@@ -56,6 +60,10 @@ class AIDiagnoseRequest(BaseModel):
     summary: Dict[str, Any]
     sample_snippet: str
 
+# -------------------------------------------------------------------------
+# UI & SAMPLES
+# -------------------------------------------------------------------------
+
 @router.get("", response_class=HTMLResponse)
 @router.get("/", response_class=HTMLResponse)
 async def read_logs_analyze_ui(
@@ -64,14 +72,21 @@ async def read_logs_analyze_ui(
 ):
     """
     Renders the AI Log & Network Forensic Analyzer interface.
-    Available to all approved authenticated users.
     """
+    user_id = str(current_user.get("id", ""))
+    email = current_user.get("email", "")
+    token = IngestStore.get_or_create_token_for_user(user_id, email)
+    base_url = str(request.base_url).rstrip("/")
+    secret_url = f"{base_url}/tools/logs_analyze/api/stream/{token}"
+
     return templates.TemplateResponse(
         request=request,
         name="tools/logs_analyze/frontend/index.html",
         context={
             "user": current_user,
-            "role": current_user.get("role", "normal_user")
+            "role": current_user.get("role", "normal_user"),
+            "secret_token": token,
+            "secret_ingest_url": secret_url
         }
     )
 
@@ -87,6 +102,10 @@ async def get_sample_logs(
         "sample_id": sample_id,
         "logs": SAMPLES[sample_id]
     })
+
+# -------------------------------------------------------------------------
+# MANUAL LOG INGESTION (PASTE & UPLOAD)
+# -------------------------------------------------------------------------
 
 @router.post("/api/analyze")
 async def analyze_raw_logs(
@@ -108,7 +127,7 @@ async def analyze_raw_logs(
         "format": parse_result["detected_format"],
         "total_lines": parse_result["total_lines"],
         "unparsed_count": parse_result["unparsed_count"],
-        "events": parse_result["parsed_events"][:300],  # Return up to 300 events for client rendering
+        "events": parse_result["parsed_events"][:300],
         "forensics": detected_threats
     })
 
@@ -141,6 +160,216 @@ async def upload_log_file(
         "events": parse_result["parsed_events"][:300],
         "forensics": detected_threats
     })
+
+# -------------------------------------------------------------------------
+# CONTINUOUS AGENT TELEMETRY (STREAM / SECRET API INGESTION)
+# -------------------------------------------------------------------------
+
+@router.get("/api/agent/config")
+async def get_agent_config(
+    request: Request,
+    current_user: dict = Depends(require_approved_user)
+):
+    """
+    Returns the secret ingestion URL and live buffer stats for the user.
+    """
+    user_id = str(current_user.get("id", ""))
+    email = current_user.get("email", "")
+    token = IngestStore.get_or_create_token_for_user(user_id, email)
+    base_url = str(request.base_url).rstrip("/")
+    secret_url = f"{base_url}/tools/logs_analyze/api/stream/{token}"
+
+    buf = IngestStore.get_live_buffer(token) or {}
+
+    return JSONResponse({
+        "status": "success",
+        "token": token,
+        "secret_url": secret_url,
+        "total_lines_streamed": buf.get("total_lines_streamed", 0),
+        "total_batches": buf.get("total_batches", 0),
+        "last_ingested_at": buf.get("last_ingested_at"),
+        "last_client_ip": buf.get("last_client_ip")
+    })
+
+@router.post("/api/agent/regenerate-token")
+async def regenerate_agent_token(
+    request: Request,
+    current_user: dict = Depends(require_approved_user)
+):
+    """
+    Revokes previous secret token and generates a fresh one.
+    """
+    user_id = str(current_user.get("id", ""))
+    email = current_user.get("email", "")
+    new_token = IngestStore.regenerate_token_for_user(user_id, email)
+    base_url = str(request.base_url).rstrip("/")
+    secret_url = f"{base_url}/tools/logs_analyze/api/stream/{new_token}"
+
+    return JSONResponse({
+        "status": "success",
+        "token": new_token,
+        "secret_url": secret_url
+    })
+
+async def _process_stream_request(request: Request, secret_token: str) -> JSONResponse:
+    """Helper to process incoming log stream with secret token."""
+    token_meta = IngestStore.validate_token(secret_token)
+    if not token_meta:
+        raise HTTPException(
+            status_code=401,
+            detail="Unauthorized: Invalid secret ingestion API key or URL."
+        )
+
+    # Read payload - supports raw text, JSON, or form
+    body_bytes = await request.body()
+    try:
+        raw_text = body_bytes.decode("utf-8")
+    except UnicodeDecodeError:
+        raw_text = body_bytes.decode("latin-1", errors="ignore")
+
+    raw_text = raw_text.strip()
+    if not raw_text:
+        raise HTTPException(status_code=400, detail="Empty log stream payload received.")
+
+    # Check if JSON payload was sent
+    if raw_text.startswith("{") and raw_text.endswith("}"):
+        try:
+            import json
+            parsed_json = json.loads(raw_text)
+            if "raw_logs" in parsed_json and isinstance(parsed_json["raw_logs"], str):
+                raw_text = parsed_json["raw_logs"].strip()
+            elif "logs" in parsed_json and isinstance(parsed_json["logs"], str):
+                raw_text = parsed_json["logs"].strip()
+        except Exception:
+            pass
+
+    client_ip = request.client.host if request.client else "unknown"
+    result = IngestStore.record_ingest(secret_token, raw_text, client_ip)
+
+    return JSONResponse({
+        "status": "success",
+        "message": f"Successfully ingested {result['lines_received']} log lines.",
+        **result
+    })
+
+@router.post("/api/stream/{secret_token}")
+async def receive_stream_by_path(
+    secret_token: str,
+    request: Request
+):
+    """
+    Endpoint targeted by shell scripts:
+    POST /tools/logs_analyze/api/stream/{secret_token}
+    """
+    return await _process_stream_request(request, secret_token)
+
+@router.post("/api/ingest")
+async def receive_stream_by_query(
+    request: Request,
+    token: Optional[str] = Query(None)
+):
+    """
+    Alternative endpoint accepting token query parameter or Authorization header:
+    POST /tools/logs_analyze/api/ingest?token={secret_token}
+    """
+    secret_token = token
+    if not secret_token:
+        auth_hdr = request.headers.get("Authorization", "")
+        if auth_hdr.startswith("Bearer "):
+            secret_token = auth_hdr[7:].strip()
+        elif "X-Ingest-Key" in request.headers:
+            secret_token = request.headers.get("X-Ingest-Key")
+
+    if not secret_token:
+        raise HTTPException(status_code=401, detail="Missing secret token parameter.")
+
+    return await _process_stream_request(request, secret_token)
+
+@router.get("/api/agent/live-stream")
+async def get_live_stream_data(
+    current_user: dict = Depends(require_approved_user)
+):
+    """
+    Polled by the web UI to display live logs forwarded by the shell agent script.
+    """
+    user_id = str(current_user.get("id", ""))
+    token = IngestStore.get_user_token(user_id)
+    if not token:
+        return JSONResponse({"status": "idle", "has_data": False})
+
+    buf = IngestStore.get_live_buffer(token)
+    if not buf or buf.get("total_lines_streamed", 0) == 0:
+        return JSONResponse({
+            "status": "idle",
+            "has_data": False,
+            "total_lines_streamed": 0,
+            "total_batches": 0
+        })
+
+    return JSONResponse({
+        "status": "active",
+        "has_data": True,
+        "total_lines_streamed": buf["total_lines_streamed"],
+        "total_batches": buf["total_batches"],
+        "last_ingested_at": buf["last_ingested_at"],
+        "last_client_ip": buf["last_client_ip"],
+        "events": buf["events"][:300],
+        "forensics": buf["forensics"]
+    })
+
+@router.post("/api/agent/clear-stream")
+async def clear_live_stream_buffer(
+    current_user: dict = Depends(require_approved_user)
+):
+    """
+    Resets the live buffer for the user.
+    """
+    user_id = str(current_user.get("id", ""))
+    token = IngestStore.get_user_token(user_id)
+    if token:
+        IngestStore.clear_buffer(token)
+    return JSONResponse({"status": "success", "message": "Buffer cleared."})
+
+# -------------------------------------------------------------------------
+# SCRIPT DOWNLOAD ENDPOINTS
+# -------------------------------------------------------------------------
+
+@router.get("/scripts/threatnetra-agent.sh")
+async def download_linux_agent():
+    path = os.path.join(SCRIPTS_DIR, "threatnetra-agent.sh")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Script not found.")
+    return FileResponse(
+        path=path,
+        media_type="text/x-shellscript",
+        filename="threatnetra-agent.sh"
+    )
+
+@router.get("/scripts/threatnetra-agent.ps1")
+async def download_windows_agent():
+    path = os.path.join(SCRIPTS_DIR, "threatnetra-agent.ps1")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Script not found.")
+    return FileResponse(
+        path=path,
+        media_type="text/plain",
+        filename="threatnetra-agent.ps1"
+    )
+
+@router.get("/scripts/threatnetra-agent.bat")
+async def download_windows_batch():
+    path = os.path.join(SCRIPTS_DIR, "threatnetra-agent.bat")
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="Script not found.")
+    return FileResponse(
+        path=path,
+        media_type="application/x-bat",
+        filename="threatnetra-agent.bat"
+    )
+
+# -------------------------------------------------------------------------
+# AI DIAGNOSIS
+# -------------------------------------------------------------------------
 
 @router.post("/api/ai-diagnose")
 async def run_ai_forensics(

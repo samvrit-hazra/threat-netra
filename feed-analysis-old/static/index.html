@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Threat Intel Triage UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+        }
+    </script>
+    <style>
+        /* Custom Toast Notification Animation */
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .toast-animate { animation: slideIn 0.3s ease-out forwards; }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-[#0b0f19] text-gray-900 dark:text-gray-200 font-sans min-h-screen relative pb-10 transition-colors duration-300">
+
+    <!-- Toast Notification Container -->
+    <div id="toastContainer" class="fixed top-5 right-5 z-50 flex flex-col gap-3"></div>
+
+    <div class="max-w-6xl mx-auto p-6">
+        <header class="mb-8 border-b border-gray-300 dark:border-gray-700 pb-4 flex justify-between items-end">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                    🛡️ Threat Intelligence Platform
+                </h1>
+                <p class="text-gray-600 dark:text-gray-400 mt-2">Autonomous OSINT & Telegram feed analysis</p>
+            </div>
+            
+            <div class="flex items-center gap-6">
+                <!-- Theme Toggle Button -->
+                <button id="themeToggle" class="p-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors text-sm font-semibold text-gray-700 dark:text-gray-300 flex items-center gap-2 shadow-sm">
+                    🌞 Light Mode
+                </button>
+
+                <div class="text-sm font-semibold text-gray-500 dark:text-gray-400 flex flex-col items-end gap-2">
+                    <span>AI Engine: <span id="currentEngineLabel" class="text-blue-600 dark:text-blue-400 border border-blue-600 dark:border-blue-400 px-2 py-1 rounded">Gemma</span></span>
+                    <span id="pollStatusBadge" class="hidden bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-400 border border-green-500 dark:border-green-400 px-2 py-1 rounded animate-pulse">Monitoring Active</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="grid md:grid-cols-3 gap-8">
+            <!-- Controls Sidebar -->
+            <div class="md:col-span-1 space-y-6">
+                <div class="bg-white dark:bg-[#1a2235] border border-gray-300 dark:border-[#2d3748] p-5 rounded-lg shadow-lg transition-colors">
+                    <h2 class="text-lg font-semibold mb-4 text-blue-600 dark:text-blue-400">Scan Configuration</h2>
+                    <form id="analyzeForm" class="space-y-4">
+                        
+
+
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Data Source</label>
+                            <select id="sourceType" class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500">
+                                <option value="telegram">Telegram (via RSS-Bridge)</option>
+                                <option value="bing">Bing News Search</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Query / Target</label>
+                            <input type="text" id="query" placeholder="e.g. Dade_is_Back or Ransomware" 
+                                class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Custom Alert Scenarios</label>
+                            <textarea id="scenarios" rows="3" placeholder="e.g. US drops bomb on Iran, Cyber attack on healthcare sector" 
+                                class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-gray-900 dark:text-white text-sm focus:outline-none focus:border-blue-500"></textarea>
+                            <p class="text-xs text-gray-500 mt-1">Separate scenarios with commas.</p>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium mb-1 text-gray-700 dark:text-gray-300">Polling Interval (Seconds)</label>
+                            <input type="number" id="intervalSec" value="60" min="10" 
+                                class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-gray-900 dark:text-white focus:outline-none focus:border-blue-500" required>
+                        </div>
+                        
+                        <div class="flex gap-3 pt-2">
+                            <button type="submit" id="startBtn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white font-bold py-2 px-4 rounded transition-colors shadow-[0_0_15px_rgba(37,99,235,0.4)]">
+                                Start Monitoring
+                            </button>
+                            <button type="button" id="stopBtn" class="hidden flex-1 bg-red-600 hover:bg-red-500 text-white font-bold py-2 px-4 rounded transition-colors shadow-[0_0_15px_rgba(220,38,38,0.4)]">
+                                Stop
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- VirusTotal Scanner Panel -->
+                <div class="bg-white dark:bg-[#1a2235] border border-gray-300 dark:border-[#2d3748] p-5 rounded-lg shadow-lg transition-colors">
+                    <h2 class="text-lg font-semibold mb-4 text-emerald-600 dark:text-emerald-400 flex items-center gap-2">🦠 VirusTotal Scanner</h2>
+                    <div class="flex flex-col gap-3">
+                        <input type="text" id="scan-url-input" placeholder="Paste URL here..." class="w-full bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded p-2 text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500">
+                        <button onclick="scanUrl()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded transition-colors shadow-[0_0_15px_rgba(16,185,129,0.4)]">
+                            Scan URL
+                        </button>
+                        <div id="scan-results" class="mt-2 text-sm hidden"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="md:col-span-2">
+                
+                <!-- Raw Feeds Section -->
+                <div class="mb-8">
+                    <h2 class="text-lg font-semibold mb-4 text-gray-600 dark:text-gray-400 flex justify-between items-center">
+                        Raw Feed Retrieved
+                        <span id="feedCount" class="text-sm bg-gray-200 dark:bg-gray-800 px-2 py-1 rounded text-gray-700 dark:text-gray-400">0 items</span>
+                    </h2>
+                    <div id="rawFeedsContainer" class="hidden overflow-x-auto bg-white dark:bg-[#1a2235] border border-gray-300 dark:border-[#2d3748] rounded-lg p-4 max-h-64 overflow-y-auto space-y-3 transition-colors">
+                        <!-- Feed list will populate here -->
+                    </div>
+                </div>
+
+                <!-- AI Analysis Section -->
+                <h2 class="text-lg font-semibold mb-4 text-blue-600 dark:text-blue-400 flex justify-between items-center">
+                    AI Triage Results
+                    <span id="resultCount" class="text-sm bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded text-gray-700 dark:text-gray-300">0 items</span>
+                </h2>
+                
+                <div id="loading" class="hidden flex flex-col items-center justify-center py-10">
+                    <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-600 dark:border-blue-500 mb-4"></div>
+                    <p class="text-blue-600 dark:text-blue-400 animate-pulse" id="loadingText">Fetching feeds & waiting on AI model...</p>
+                </div>
+
+                <div id="results" class="space-y-4">
+                    <div class="bg-white dark:bg-[#1a2235] border border-gray-300 dark:border-[#2d3748] p-8 rounded-lg text-center text-gray-500 transition-colors" id="emptyStateMsg">
+                        Select a source and start monitoring to view extracted threats.
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Alert Log Section -->
+            <div class="md:col-span-3 mt-4 border-t border-gray-300 dark:border-gray-700 pt-8 transition-colors">
+                <h2 class="text-xl font-semibold mb-4 text-red-600 dark:text-red-400 flex items-center gap-2">
+                    🚨 Verified Alert Log
+                </h2>
+                <div class="bg-white dark:bg-[#1a2235] border border-gray-300 dark:border-[#2d3748] rounded-lg overflow-hidden shadow-lg transition-colors">
+                    <table class="w-full text-left text-sm text-gray-600 dark:text-gray-400">
+                        <thead class="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 uppercase border-b border-gray-200 dark:border-gray-700">
+                            <tr>
+                                <th class="px-4 py-3 w-1/6">Timestamp</th>
+                                <th class="px-4 py-3 w-1/3">Matched Scenario</th>
+                                <th class="px-4 py-3">Headline</th>
+                            </tr>
+                        </thead>
+                        <tbody id="alertLogTable" class="divide-y divide-gray-200 dark:divide-gray-700">
+                            <tr id="emptyLogMsg">
+                                <td colspan="3" class="px-4 py-8 text-center text-gray-500">No scenario alerts triggered yet.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+        </main>
+    </div>
+
+    <script>
+        let monitorInterval = null;
+        const seenAlertTitles = new Set();
+
+        // Theme Toggle Logic
+        const themeToggleBtn = document.getElementById('themeToggle');
+        const htmlElement = document.documentElement;
+
+        // Check Local Storage or OS Preference
+        if (localStorage.theme === 'light' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: light)').matches)) {
+            htmlElement.classList.remove('dark');
+            themeToggleBtn.innerText = '🌙 Dark Mode';
+        }
+
+        themeToggleBtn.addEventListener('click', () => {
+            if (htmlElement.classList.contains('dark')) {
+                htmlElement.classList.remove('dark');
+                localStorage.theme = 'light';
+                themeToggleBtn.innerText = '🌙 Dark Mode';
+            } else {
+                htmlElement.classList.add('dark');
+                localStorage.theme = 'dark';
+                themeToggleBtn.innerText = '🌞 Light Mode';
+            }
+        });
+
+        // Ask for Browser Notification Permission on load
+        if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
+            Notification.requestPermission();
+        }
+
+
+
+        // Show Custom Toast Notification
+        function showToast(scenario, title) {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = 'bg-red-100 dark:bg-red-900 border-l-4 border-red-500 text-red-900 dark:text-white p-4 rounded shadow-xl w-80 toast-animate flex flex-col gap-1';
+            toast.innerHTML = `
+                <div class="flex justify-between items-center">
+                    <span class="font-bold text-sm text-red-700 dark:text-red-200">🚨 THREAT ALERT!</span>
+                    <button onclick="this.parentElement.parentElement.remove()" class="text-gray-500 dark:text-gray-400 hover:text-black dark:hover:text-white">&times;</button>
+                </div>
+                <div class="font-semibold text-sm">${scenario}</div>
+                <div class="text-xs text-gray-700 dark:text-gray-300 mt-1">${title}</div>
+            `;
+            container.appendChild(toast);
+            
+            // Auto remove after 10 seconds
+            setTimeout(() => { if(toast.parentElement) toast.remove(); }, 10000);
+        }
+
+        async function fetchAndAnalyze() {
+            document.getElementById('loading').classList.remove('hidden');
+            document.getElementById('loadingText').innerText = "Polling feeds & analyzing...";
+            
+            const emptyMsg = document.getElementById('emptyStateMsg');
+            if (emptyMsg) emptyMsg.remove();
+            
+            const rawScenarios = document.getElementById('scenarios').value;
+            const scenarios = rawScenarios ? rawScenarios.split(',').map(s => s.trim()).filter(s => s) : [];
+
+            const payload = {
+                source_type: document.getElementById('sourceType').value,
+                query: document.getElementById('query').value,
+                provider: "groq",
+                scenarios: scenarios,
+                limit: 5
+            };
+
+            try {
+                const res = await fetch('/threat/api/v1/analyze', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                
+                const data = await res.json();
+                document.getElementById('loading').classList.add('hidden');
+                
+                // Render Raw Feeds
+                if (data.raw_feeds && data.raw_feeds.length > 0) {
+                    const rawFeedsContainer = document.getElementById('rawFeedsContainer');
+                    rawFeedsContainer.classList.remove('hidden');
+                    document.getElementById('feedCount').innerText = `${data.raw_feeds.length} items`;
+                    rawFeedsContainer.innerHTML = ''; // clear previous
+                    
+                    // Display the Feed URL at the top
+                    if (data.metadata && data.metadata.feed_url) {
+                        rawFeedsContainer.innerHTML += `
+                            <div class="mb-3 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded break-all transition-colors">
+                                <span class="text-blue-700 dark:text-blue-400 font-bold block mb-1">🔗 Target RSS Feed URL:</span> 
+                                <a href="${data.metadata.feed_url}" target="_blank" class="text-blue-600 dark:text-blue-300 hover:underline text-sm font-mono">${data.metadata.feed_url}</a>
+                            </div>
+                        `;
+                    }
+                    
+                    data.raw_feeds.forEach(feed => {
+                        const dateBadge = feed.pub_date ? `<span class="text-xs text-gray-500 float-right">${feed.pub_date}</span>` : '';
+                        rawFeedsContainer.innerHTML += `
+                            <div class="bg-gray-50 dark:bg-gray-800 p-3 rounded border border-gray-300 dark:border-gray-700 text-sm transition-colors">
+                                ${dateBadge}
+                                <a href="${feed.link}" target="_blank" class="text-blue-600 dark:text-blue-400 hover:underline font-semibold block mb-1">${feed.title}</a>
+                                <p class="text-gray-600 dark:text-gray-400 truncate">${feed.description.replace(/(<([^>]+)>)/gi, "")}</p>
+                            </div>
+                        `;
+                    });
+                }
+
+                // Render AI Results & Trigger Popups
+                if (data.results && Array.isArray(data.results)) {
+                    document.getElementById('resultCount').innerText = `${data.results.length} items`;
+                    const resultsContainer = document.getElementById('results');
+                    resultsContainer.innerHTML = ''; // clear previous
+
+                    data.results.forEach(item => {
+                        if (item.error) {
+                            resultsContainer.innerHTML += `<div class="bg-red-100 dark:bg-red-900 border border-red-500 p-4 rounded text-red-800 dark:text-red-200">AI Error: ${item.error}</div>`;
+                            return;
+                        }
+
+                        // Determine if it matches an alert scenario
+                        const scenarioVal = item.scenario_matched;
+                        const invalidStrings = ["null", "none", "false", "n/a", "no", ""];
+                        const isStringInvalid = typeof scenarioVal === 'string' && invalidStrings.includes(scenarioVal.trim().toLowerCase());
+                        
+                        const isMatch = scenarioVal && !isStringInvalid;
+                        
+                        // Fire notifications & Log to table
+                        if (isMatch && !seenAlertTitles.has(item.item_title)) {
+                            seenAlertTitles.add(item.item_title); 
+                            
+                            showToast(item.scenario_matched, item.item_title);
+                            
+                            if ("Notification" in window && Notification.permission === "granted") {
+                                new Notification("🚨 Scenario Matched!", {
+                                    body: `${item.scenario_matched}\n\n${item.item_title}`
+                                });
+                            }
+
+                            const logEmptyMsg = document.getElementById('emptyLogMsg');
+                            if (logEmptyMsg) logEmptyMsg.remove();
+
+                            const timestamp = new Date().toLocaleTimeString();
+                            document.getElementById('alertLogTable').insertAdjacentHTML('afterbegin', `
+                                <tr class="hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                    <td class="px-4 py-3 whitespace-nowrap font-mono text-gray-600 dark:text-gray-300">${timestamp}</td>
+                                    <td class="px-4 py-3 font-semibold text-red-600 dark:text-red-400">${item.scenario_matched}</td>
+                                    <td class="px-4 py-3 text-gray-800 dark:text-gray-200">${item.item_title}</td>
+                                </tr>
+                            `);
+                        }
+
+                        // UI Badges
+                        const matchBadge = isMatch ? 
+                            `<span class="bg-red-100 dark:bg-red-600 text-red-800 dark:text-red-100 text-xs px-2 py-1 rounded shadow-sm border border-red-400">🚨 ALERT: ${item.scenario_matched}</span>` : '';
+                        
+                        const threatStyle = isMatch ? 'border-red-500 shadow-[0_0_10px_rgba(220,38,38,0.2)]' : 'border-gray-300 dark:border-[#2d3748]';
+
+                        let urlButtons = '';
+                        if (item.extracted_urls && item.extracted_urls.length > 0) {
+                            urlButtons = '<div class="mt-4 pt-3 border-t border-gray-200 dark:border-gray-700"><span class="text-xs font-semibold text-gray-500 dark:text-gray-400 block mb-2">Extracted URLs (Click to copy to scanner):</span><div class="flex flex-wrap gap-2">';
+                            item.extracted_urls.forEach(url => {
+                                urlButtons += `<button onclick="document.getElementById('scan-url-input').value='${url}'" class="text-xs bg-gray-100 dark:bg-gray-800 text-blue-600 dark:text-blue-400 px-2 py-1 rounded border border-gray-200 dark:border-gray-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 truncate max-w-full transition-colors" title="${url}">${url}</button>`;
+                            });
+                            urlButtons += '</div></div>';
+                        }
+
+                        resultsContainer.innerHTML += `
+                            <div class="bg-white dark:bg-[#1a2235] p-5 rounded-lg border ${threatStyle} hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+                                <div class="flex justify-between items-start mb-3 gap-4">
+                                    <h3 class="text-md font-bold text-gray-900 dark:text-gray-100 flex-1">${item.item_title}</h3>
+                                    <div class="flex flex-col items-end gap-2 shrink-0">
+                                        ${matchBadge}
+                                    </div>
+                                </div>
+                                <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed border-l-2 border-gray-300 dark:border-gray-600 pl-3">${item.summary}</p>
+                                ${urlButtons}
+                            </div>
+                        `;
+                    });
+                }
+            } catch (err) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('results').innerHTML = `<div class="bg-white dark:bg-[#1a2235] border border-gray-300 dark:border-[#2d3748] p-6 rounded text-red-600 dark:text-red-500">Network Error: ${err.message}</div>`;
+            }
+        }
+
+        // Start Monitoring Logic
+        document.getElementById('analyzeForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            const intervalSec = parseInt(document.getElementById('intervalSec').value) || 60;
+            
+            document.getElementById('startBtn').classList.add('hidden');
+            document.getElementById('stopBtn').classList.remove('hidden');
+            document.getElementById('pollStatusBadge').classList.remove('hidden');
+            
+            seenAlertTitles.clear();
+            document.getElementById('alertLogTable').innerHTML = `
+                <tr id="emptyLogMsg">
+                    <td colspan="3" class="px-4 py-8 text-center text-gray-500">No scenario alerts triggered yet.</td>
+                </tr>
+            `;
+
+            fetchAndAnalyze();
+            monitorInterval = setInterval(fetchAndAnalyze, intervalSec * 1000);
+        });
+
+        // Stop Monitoring Logic
+        document.getElementById('stopBtn').addEventListener('click', () => {
+            if (monitorInterval) clearInterval(monitorInterval);
+            
+            document.getElementById('startBtn').classList.remove('hidden');
+            document.getElementById('stopBtn').classList.add('hidden');
+            document.getElementById('pollStatusBadge').classList.add('hidden');
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('loadingText').innerText = "Monitoring Stopped.";
+        });
+
+        // URL Scanner Logic
+        async function scanUrl() {
+            const urlInput = document.getElementById('scan-url-input').value;
+            const resultsDiv = document.getElementById('scan-results');
+            if (!urlInput) return;
+            
+            resultsDiv.classList.remove('hidden');
+            resultsDiv.innerHTML = '<span class="text-emerald-500 animate-pulse text-xs font-semibold">Scanning with VirusTotal...</span>';
+            
+            try {
+                const res = await fetch('/threat/api/v1/scan-url', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({url: urlInput})
+                });
+                const data = await res.json();
+                
+                if (res.ok) {
+                    if (data.status === 'unscanned') {
+                        resultsDiv.innerHTML = `<span class="text-gray-500 text-xs font-medium">⚠️ ${data.message}</span>`;
+                    } else {
+                        const stats = data.stats;
+                        const isMalicious = data.malicious > 0;
+                        resultsDiv.innerHTML = `
+                            <div class="p-3 rounded border ${isMalicious ? 'bg-red-50 border-red-200 dark:bg-red-900/30 dark:border-red-800' : 'bg-emerald-50 border-emerald-200 dark:bg-emerald-900/30 dark:border-emerald-800'}">
+                                <div class="font-bold text-xs ${isMalicious ? 'text-red-700 dark:text-red-400' : 'text-emerald-700 dark:text-emerald-400'} mb-2">
+                                    ${isMalicious ? '🚨 Malicious Activity Detected!' : '✅ Clean (No malicious engines found)'}
+                                </div>
+                                <div class="grid grid-cols-3 gap-2 text-[11px]">
+                                    <div class="text-red-600 dark:text-red-400 font-semibold">Malicious: <span class="font-bold">${stats.malicious || 0}</span></div>
+                                    <div class="text-orange-600 dark:text-orange-400 font-semibold">Suspicious: <span class="font-bold">${stats.suspicious || 0}</span></div>
+                                    <div class="text-emerald-600 dark:text-emerald-400 font-semibold">Harmless: <span class="font-bold">${stats.harmless || 0}</span></div>
+                                </div>
+                            </div>
+                        `;
+                    }
+                } else {
+                    resultsDiv.innerHTML = `<span class="text-red-500 text-xs font-medium">Error: ${data.detail || 'Failed to scan'}</span>`;
+                }
+            } catch (e) {
+                resultsDiv.innerHTML = `<span class="text-red-500 text-xs font-medium">Error: ${e.message}</span>`;
+            }
+        }
+    </script>
+</body>
+</html>
