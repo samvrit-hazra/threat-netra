@@ -10,7 +10,7 @@
             <span class="eyebrow">MODULE // IDENTITY FORENSICS & RECONNAISSANCE</span>
             <h2 style="margin: 0; font-size: 1.85rem;">Online Account Authenticity &amp; Profile Scanner</h2>
             <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">
-                Live OSINT profile scanning powered by automated Bing Search RSS telemetry feeds and WaybackWayback Machine Twitter status archivesMachine Twitter status archives.
+                Live OSINT profile scanning powered by automated Bing Search RSS telemetry feeds and Wayback Machine Twitter status archives.
             </p>
         </div>
         <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
@@ -30,7 +30,7 @@
                 <span class="eyebrow" style="color: var(--accent);">REAL-TIME RECONNAISSANCE</span>
                 <h3 style="margin: 0.25rem 0; font-size: 1.25rem;">Bing Search RSS Profile Scanner</h3>
                 <p style="margin: 0; color: var(--text-secondary); font-size: 0.8125rem;">
-                    Constructs precision search directives (e.g., <code>site:instagram.com "itsfoss"</code>), compiles the syndicated Bing RSS stream URL, and correlatescorrelates live indexed presence and historical archiveshistorical archives.
+                    Constructs precision search directives (e.g., <code>site:instagram.com "itsfoss"</code>), compiles the syndicated Bing RSS stream URL, and correlates live indexed presence and historical archives.
                 </p>
             </div>
             <!-- QUICK PRESETS -->
@@ -251,8 +251,8 @@
                 <div class="tool-card" style="padding: 1.25rem; background: #080808; border: 1px solid var(--border);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
                         <div>
-                            <span class="eyebrow">VERIFIED DOMAINVERIFIED DOMAIN TELEMETRY STREAM</span>
-                            <h4 style="margin: 0; font-size: 1rem;">TargetTarget PlatformPlatform Feed Items (<span id="resultsCountBadge">0</span>)</h4>
+                            <span class="eyebrow">VERIFIED DOMAIN TELEMETRY STREAM</span>
+                            <h4 style="margin: 0; font-size: 1rem;">Target Platform Feed Items (<span id="resultsCountBadge">0</span>)</h4>
                         </div>
                         <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="channelFeedTitle"></span>
                     </div>
@@ -270,8 +270,8 @@
     <div class="panel" style="border-top: 2px solid var(--status-gov); margin-bottom: 2rem;">
         <div class="panel-header">
             <span class="eyebrow" style="color: var(--status-gov);">CLEARANCE LEVEL // ELEVATED COLLECTION</span>
-            <h3>Governmental Collection: Deep Crawler &amp; Wayback Ingestion&amp; Wayback Ingestion</h3>
-            <p>ExecutesExecutes deepdeep OSINT scraping.scraping. ForFor TwitterTwitter // XX targets,targets, interrogates Wayback Machine status archives to retrieve historical and deleted tweetsinterrogates Wayback Machine status archives to retrieve historical and deleted tweets.</p>
+            <h3>Governmental Collection: Deep Crawler &amp; Wayback Ingestion</h3>
+            <p>Executes deep OSINT scraping. For Twitter / X targets, interrogates Wayback Machine status archives to retrieve historical and deleted tweets.</p>
         </div>
         <div class="panel-body">
             <form id="govScrapeForm">
@@ -299,16 +299,124 @@
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="checkbox" id="scrapePosts" checked style="accent-color: var(--status-gov);"> 
-                        INGEST TIMELINE POSTS &amp; WAYBACKWAYBACK STATUSESSTATUSES
+                        INGEST TIMELINE POSTS &amp; WAYBACK STATUSES
                     </label>
                 </div>
 
                 <button type="submit" id="scrapeSubmit" class="btn btn-gov">Initialize Deep Forensics</button>
             </form>
 
-            <div id="scrapeResult" style="display: none; margin-top: 2rem; border: 1px solid var(--border); padding: 1.5rem; background-color: var(--bg);">
-                <span class="eyebrow" style="color: var(--status-gov);">OUTPUT // FORENSIC COLLECTION LOG</span>
-                <pre id="scrapeOutput" class="mono" style="background: var(--bg-elevated); color: var(--status-gov); padding: 1.25rem; border: 1px solid var(--border); overflow-x: auto; font-size: 0.8125rem; line-height: 1.5;"></pre>
+            <!-- SCANNING / ANALYSIS PROGRESS BANNER -->
+            <div id="govScrapeLoadingIndicator" style="display: none; align-items: center; gap: 0.85rem; margin-top: 1.5rem; padding: 1rem 1.25rem; background: #06090E; border: 1px solid var(--status-gov); font-family: var(--font-mono); font-size: 0.75rem; color: var(--status-gov);">
+                <span style="display: inline-block; width: 8px; height: 8px; background: var(--status-gov); box-shadow: 0 0 8px var(--status-gov); animation: pulse 1s infinite alternate;"></span>
+                <span id="govScrapeLoadingText">CONNECTING TO SCRAPING CLUSTER, EXTRACTING WAYBACK ARCHIVES &amp; COMPUTING AI SYNTHETIC RISK ANALYSIS...</span>
+            </div>
+
+            <!-- ERROR ALERT BANNER -->
+            <div id="govScrapeErrorBox" style="display: none; margin-top: 1.5rem; background: #150606; border: 1px solid var(--status-error); padding: 1.25rem;">
+                <span class="mono" style="color: var(--status-error); font-size: 0.75rem; font-weight: 600;">[INGESTION EXCEPTION // RECONNAISSANCE FAILURE]</span>
+                <div id="govScrapeErrorText" style="color: #FFF; font-size: 0.8125rem; margin-top: 0.35rem;"></div>
+            </div>
+
+            <!-- AI FORENSIC ANALYSIS CARD (NO RAW JSON DISPLAYED) -->
+            <div id="govScrapeAnalysisCard" style="display: none; margin-top: 2rem; border: 1px solid var(--border); background-color: #0A0A0A; padding: 1.5rem;">
+                
+                <!-- DOSSIER TOOLBAR & DOWNLOAD ACTION -->
+                <div style="display: flex; justify-content: space-between; align-items: center; padding-bottom: 1rem; margin-bottom: 1.25rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 0.75rem;">
+                    <div>
+                        <span class="eyebrow" style="color: var(--status-gov); margin-bottom: 0.2rem;">AI COUNTER-INTELLIGENCE FORENSICS</span>
+                        <h4 style="margin: 0; font-size: 1.15rem; color: #FFF;" id="govAnalysisTargetHeader">@TARGET &bull; PROFILE FORENSICS</h4>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                        <span class="badge" id="govAiEngineBadge" style="font-family: var(--font-mono); font-size: 0.7rem; border-color: var(--status-gov); color: var(--status-gov);">
+                            AI // GROQ LPU
+                        </span>
+                        <button type="button" id="downloadRawJsonBtn" class="btn btn-secondary btn-sm" style="font-family: var(--font-mono); font-size: 0.72rem; padding: 6px 14px; display: inline-flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                <polyline points="7 10 12 15 17 10"></polyline>
+                                <line x1="12" y1="15" x2="12" y2="3"></line>
+                            </svg>
+                            <span>DOWNLOAD RAW DOSSIER (JSON)</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 1. PERCENTAGE POSSIBILITY OF ACCOUNT BEING FAKE (PROMINENT SECTION) -->
+                <div style="background: #000; border: 1px solid var(--border); padding: 1.5rem; margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <span class="eyebrow" style="margin-bottom: 0.25rem; color: var(--text-muted);">SYNTHETIC RISK INDEX</span>
+                            <div style="display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap;">
+                                <div id="fakeProbabilityPct" class="mono" style="font-size: 3rem; font-weight: 700; line-height: 1; color: var(--status-error);">
+                                    0%
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+                                    <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">PROBABILITY OF BEING FAKE / BOT</span>
+                                    <span id="fakeRiskVerdictBadge" class="badge" style="font-size: 0.72rem; padding: 3px 8px; font-weight: 600;">
+                                        EVALUATING
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div style="text-align: right;" class="mono">
+                            <span style="font-size: 0.6875rem; color: var(--text-muted); display: block; text-transform: uppercase;">Authenticity Confidence</span>
+                            <span id="authenticityConfidenceScore" style="font-size: 1.35rem; font-weight: 700; color: #FFF;">
+                                0% / 100%
+                            </span>
+                            <span id="riskTierTag" style="font-size: 0.7rem; color: var(--text-secondary); display: block; margin-top: 0.2rem;">
+                                RISK TIER: NOMINAL
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- RISK GAUGE PROGRESS BAR -->
+                    <div style="width: 100%; height: 8px; background: #141414; border: 1px solid #262626; position: relative; margin-bottom: 0.65rem;">
+                        <div id="fakeProbabilityBar" style="height: 100%; width: 0%; background: var(--status-error); transition: width 0.6s ease, background 0.3s ease;"></div>
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.6875rem; color: var(--text-muted);">
+                        <span>0% &mdash; VERIFIED ORGANIC HUMAN</span>
+                        <span>50% &mdash; INORGANIC SUSPICION</span>
+                        <span>100% &mdash; CONFIRMED SYNTHETIC BOTNET</span>
+                    </div>
+                </div>
+
+                <!-- 2. EXECUTIVE BRIEFING & VERDICT SUMMARY -->
+                <div style="background: #000; border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1.25rem;">
+                    <span class="eyebrow" style="margin-bottom: 0.4rem; color: var(--text-muted);">EXECUTIVE COUNTER-INTELLIGENCE BRIEFING</span>
+                    <h5 id="verdictHeadlineText" style="margin: 0 0 0.65rem 0; font-size: 0.95rem; color: #FFF; font-family: var(--font-mono); font-weight: 600;"></h5>
+                    <div id="executiveSummaryText" style="font-size: 0.84rem; line-height: 1.6; color: var(--text-secondary);"></div>
+                </div>
+
+                <!-- 3. DETECTED ANOMALIES & THREAT INDICATORS -->
+                <div style="background: #000; border: 1px solid var(--border); padding: 1.25rem; margin-bottom: 1.25rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                        <span class="eyebrow" style="margin: 0; color: var(--text-muted);">ISOLATED BEHAVIORAL &amp; GRAPH ANOMALIES</span>
+                        <span id="anomalyCountBadge" class="mono" style="font-size: 0.7rem; color: var(--text-muted);">0 ANOMALIES FLAGGED</span>
+                    </div>
+                    <div id="anomaliesListContainer" style="display: flex; flex-direction: column; gap: 0.65rem;"></div>
+                </div>
+
+                <!-- 4. WAYBACK MACHINE & AUDIENCE IDENTITY GRAPH FOOTPRINT -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div style="background: #000; border: 1px solid var(--border); padding: 1.15rem;">
+                        <span class="eyebrow" style="margin-bottom: 0.35rem; color: var(--text-muted);">WAYBACK ARCHIVE RECORD</span>
+                        <div id="waybackForensicsText" style="font-size: 0.8125rem; line-height: 1.5; color: var(--text-secondary); font-family: var(--font-sans);"></div>
+                    </div>
+                    <div style="background: #000; border: 1px solid var(--border); padding: 1.15rem;">
+                        <span class="eyebrow" style="margin-bottom: 0.35rem; color: var(--text-muted);">AUDIENCE GRAPH &amp; METADATA</span>
+                        <div id="identityGraphText" style="font-size: 0.8125rem; line-height: 1.5; color: var(--text-secondary); font-family: var(--font-sans);"></div>
+                    </div>
+                </div>
+
+                <!-- 5. ACTIONABLE DIRECTIVES FOR ANALYSTS -->
+                <div style="background: #000; border: 1px solid var(--border); padding: 1.15rem;">
+                    <span class="eyebrow" style="margin-bottom: 0.35rem; color: var(--status-gov);">RECOMMENDED DEFENSE DIRECTIVES</span>
+                    <ul id="recommendedActionsList" style="margin: 0; padding-left: 1.25rem; font-size: 0.8125rem; line-height: 1.6; color: var(--text-secondary);"></ul>
+                </div>
+
             </div>
         </div>
     </div>
@@ -744,26 +852,35 @@ letcurrentActiveTwitterHandle="";
         });
     };
 
-    // Governmental Scraping Handler
-    document.getElementById('govScrapeForm')?.addEventListener('submit', async (e) => {
+    let lastGovScrapeTelemetry = null;
+    let lastGovScrapeTarget = "";
+
+    // Governmental Scraping & AI Analysis Handler
+    document.getElementById("govScrapeForm")?.addEventListener("submit", async (e) => {
         e.preventDefault();
-        const handle = document.getElementById('scrapeTarget').value;
-        const platform = document.getElementById('scrapePlatform').value;
-        const extractFollowers = document.getElementById('scrapeFollowers').checked;
-        const extractPosts = document.getElementById('scrapePosts').checked;
-        const btn = document.getElementById('scrapeSubmit');
-        const resBox = document.getElementById('scrapeResult');
-        const output = document.getElementById('scrapeOutput');
+        const handle = document.getElementById("scrapeTarget").value.trim();
+        const platform = document.getElementById("scrapePlatform").value;
+        const extractFollowers = document.getElementById("scrapeFollowers").checked;
+        const extractPosts = document.getElementById("scrapePosts").checked;
+        const btn = document.getElementById("scrapeSubmit");
+
+        const loadingBox = document.getElementById("govScrapeLoadingIndicator");
+        const errorBox = document.getElementById("govScrapeErrorBox");
+        const errorText = document.getElementById("govScrapeErrorText");
+        const analysisCard = document.getElementById("govScrapeAnalysisCard");
+
+        if (!handle) return;
 
         btn.disabled = true;
-        btn.textContent = 'EXECUTING OSINT & CRAWLER...';
-        resBox.style.display = 'block';
-        output.textContent = 'CONNECTING TO SCRAPING CLUSTER & WAYBACK ARCHIVE RECONNAISSANCE...\nRESOLVING ENTITY GRAPH...\nANALYZING BOT VECTORS...';
+        btn.textContent = "EXECUTING OSINT & AI ANALYSIS...";
+        loadingBox.style.display = "flex";
+        errorBox.style.display = "none";
+        analysisCard.style.display = "none";
 
         try {
-            const res = await fetch('/tools/profile_auth/api/scrape', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+            const res = await fetch("/tools/profile_auth/api/scrape", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     handle: handle,
                     platform: platform,
@@ -771,6 +888,150 @@ letcurrentActiveTwitterHandle="";
                     extract_posts: extractPosts
                 })
             });
+
+            if (!res.ok) {
+                const errData = await res.json().catch(() => ({}));
+                throw new Error(errData.detail || `Scraping & analysis request failed (HTTP ${res.status})`);
+            }
+
+            const data = await res.json();
+            lastGovScrapeTelemetry = data.raw_telemetry || data;
+            lastGovScrapeTarget = handle;
+
+            renderGovAiAnalysis(data, handle, platform);
+        } catch (err) {
+            errorBox.style.display = "block";
+            errorText.textContent = err.message;
+        } finally {
+            btn.disabled = false;
+            btn.textContent = "Initialize Deep Forensics";
+            loadingBox.style.display = "none";
+        }
+    });
+
+    document.getElementById("downloadRawJsonBtn")?.addEventListener("click", () => {
+        if (!lastGovScrapeTelemetry) {
+            alert("No telemetry dossier available to download.");
+            return;
+        }
+        const cleanName = (lastGovScrapeTarget || "profile").replace(/[^a-zA-Z0-9_-]/g, "_");
+        const jsonBlob = new Blob([JSON.stringify(lastGovScrapeTelemetry, null, 2)], { type: "application/json" });
+        const downloadUrl = URL.createObjectURL(jsonBlob);
+        const a = document.createElement("a");
+        a.href = downloadUrl;
+        a.download = `threatnetra_profile_telemetry_${cleanName}_${Date.now()}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(downloadUrl);
+    });
+
+    function renderGovAiAnalysis(data, handle, platform) {
+        const ai = data.ai_analysis || {};
+        const analysisCard = document.getElementById("govScrapeAnalysisCard");
+        const targetHeader = document.getElementById("govAnalysisTargetHeader");
+        const aiEngineBadge = document.getElementById("govAiEngineBadge");
+
+        const fakePctElem = document.getElementById("fakeProbabilityPct");
+        const fakeBarElem = document.getElementById("fakeProbabilityBar");
+        const verdictBadge = document.getElementById("fakeRiskVerdictBadge");
+        const authScoreElem = document.getElementById("authenticityConfidenceScore");
+        const riskTierTag = document.getElementById("riskTierTag");
+
+        const verdictHeadline = document.getElementById("verdictHeadlineText");
+        const execSummary = document.getElementById("executiveSummaryText");
+        const anomalyBadge = document.getElementById("anomalyCountBadge");
+        const anomaliesContainer = document.getElementById("anomaliesListContainer");
+        const waybackElem = document.getElementById("waybackForensicsText");
+        const identityElem = document.getElementById("identityGraphText");
+        const actionsList = document.getElementById("recommendedActionsList");
+
+        targetHeader.textContent = `@${handle.replace(/^@+/, "")} • ${platform.toUpperCase()} INTELLIGENCE`;
+        aiEngineBadge.textContent = `INFERENCE // ${(ai.ai_engine_used || "AI ENGINE").toUpperCase()}`;
+
+        const fakePct = Math.max(0, Math.min(100, Math.round(ai.fake_probability_percent ?? 50)));
+        fakePctElem.textContent = `${fakePct}%`;
+        fakeBarElem.style.width = `${fakePct}%`;
+
+        let statusColor = "var(--status-success)";
+        let statusBg = "rgba(63, 185, 80, 0.12)";
+        if (fakePct >= 70) {
+            statusColor = "var(--status-error)";
+            statusBg = "rgba(248, 81, 73, 0.15)";
+        } else if (fakePct >= 40) {
+            statusColor = "var(--status-warning)";
+            statusBg = "rgba(210, 153, 34, 0.15)";
+        }
+
+        fakePctElem.style.color = statusColor;
+        fakeBarElem.style.background = statusColor;
+
+        verdictBadge.textContent = ai.verdict_headline || (fakePct >= 70 ? "HIGH PROBABILITY SYNTHETIC BOT" : "LIKELY AUTHENTIC");
+        verdictBadge.style.color = statusColor;
+        verdictBadge.style.borderColor = statusColor;
+        verdictBadge.style.background = statusBg;
+
+        const authScore = ai.authenticity_score ?? (100 - fakePct);
+        authScoreElem.textContent = `${authScore}% / 100%`;
+        riskTierTag.textContent = `RISK TIER: ${ai.risk_tier || (fakePct >= 70 ? "CRITICAL" : (fakePct >= 40 ? "ELEVATED" : "NOMINAL"))}`;
+
+        verdictHeadline.textContent = ai.verdict_headline || "PROFILE AUTHENTICITY ASSESSMENT COMPLETE";
+        execSummary.textContent = ai.executive_summary || "Telemetry evaluated across search indexes, audience graphs, and archival history.";
+
+        const anomalies = ai.anomaly_indicators || [];
+        anomalyBadge.textContent = `${anomalies.length} ANOMALIES FLAGGED`;
+        anomaliesContainer.innerHTML = "";
+
+        if (anomalies.length === 0) {
+            anomaliesContainer.innerHTML = `<div class="mono" style="font-size:0.75rem; color:var(--text-muted); padding:0.5rem;">No critical synthetic anomalies or bot patterns flagged.</div>`;
+        } else {
+            anomaliesContainer.forEach(anom => {
+                const item = document.createElement("div");
+                item.style.background = "#050505";
+                item.style.border = "1px solid var(--border)";
+                item.style.padding = "0.75rem 1rem";
+                
+                const sev = (anom.severity || "MEDIUM").toUpperCase();
+                let sevColor = "var(--text-muted)";
+                let sevBg = "rgba(255,255,255,0.05)";
+                if (sev === "HIGH" || sev === "CRITICAL") {
+                    sevColor = "var(--status-error)";
+                    sevBg = "rgba(248, 81, 73, 0.12)";
+                } else if (sev === "MEDIUM") {
+                    sevColor = "var(--status-warning)";
+                    sevBg = "rgba(210, 153, 34, 0.12)";
+                }
+
+                item.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.35rem; flex-wrap:wrap; gap:0.5rem;">
+                        <span style="font-size:0.8125rem; font-weight:600; color:#FFF; font-family:var(--font-mono);">${escapeHtml(anom.indicator)}</span>
+                        <span class="badge" style="background:${sevBg}; color:${sevColor}; border-color:${sevColor}; font-size:0.65rem;">[${sev}]</span>
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-secondary); line-height:1.45;">${escapeHtml(anom.detail || "")}</div>
+                `;
+                anomaliesContainer.appendChild(item);
+            });
+        }
+
+        waybackElem.textContent = ai.wayback_forensics || "Archival footprint analyzed.";
+        identityElem.textContent = ai.identity_graph_breakdown || "Audience graph parsed.";
+
+        const actions = ai.recommended_actions || [];
+        actionsList.innerHTML = "";
+        if (actions.length === 0) {
+            actionsList.innerHTML = `<li>Retain telemetry log in case of escalated incident reporting.</li>`;
+        } else {
+            actions.forEach(act => {
+                const li = document.createElement("li");
+                li.style.marginBottom = "0.35rem";
+                li.textContent = act;
+                actionsList.appendChild(li);
+            });
+        }
+
+        analysisCard.style.display = "block";
+        analysisCard.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
             const data = await res.json();
             output.textContent = JSON.stringify(data, null, 2);
         } catch (err) {

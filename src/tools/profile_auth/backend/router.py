@@ -7,6 +7,7 @@ from typing import Optional, List
 from src.auth.backend.dependencies import require_approved_user
 from src.tools.profile_auth.backend.bing_scanner import BingProfileScanner
 from src.tools.profile_auth.backend.twitter_archive import TwitterArchiveScraper
+from src.tools.profile_auth.backend.ai_analyzer import analyze_profile_telemetry
 
 router = APIRouter(prefix="/tools/profile_auth", tags=["profile_auth"])
 templates = Jinja2Templates(directory="src")
@@ -87,8 +88,9 @@ async def execute_gov_scraping(
     current_user: dict = Depends(require_approved_user)
 ):
     """
-    Direct Automated Scraping / Deep Forensic Collection API.
-    Utilizes live Bing RSS reconnaissance combined with Wayback Machine archive forensics for Twitter/X.
+    Direct Automated Scraping / Deep Forensic Collection & AI Analysis API.
+    Utilizes live Bing RSS reconnaissance combined with Wayback Machine archive forensics for Twitter/X,
+    followed by AI-driven multi-vector synthetic bot and fake account probability analysis.
     Strictly restricted to Governmental Users and Admins.
     """
     role = current_user.get("role")
@@ -110,7 +112,7 @@ async def execute_gov_scraping(
     if payload.platform.lower() in ("twitter", "x", "twitter.com", "x.com"):
         twitter_archive_data = await TwitterArchiveScraper.scrape_twitter_archive(payload.handle)
 
-    return JSONResponse({
+    raw_telemetry = {
         "status": "success",
         "mode": "governmental_automated_scraping",
         "target": payload.handle,
@@ -131,6 +133,17 @@ async def execute_gov_scraping(
             "wayback_archive_status": twitter_archive_data.get("cdx_status") if twitter_archive_data else None,
             "archived_status_count": twitter_archive_data.get("total_snapshots_found", 0) if twitter_archive_data else 0
         }
+    }
+
+    # Execute deep AI analysis to determine fake account probability and threat assessment
+    ai_analysis = analyze_profile_telemetry(raw_telemetry)
+
+    return JSONResponse({
+        "status": "success",
+        "target": payload.handle,
+        "platform": payload.platform,
+        "raw_telemetry": raw_telemetry,
+        "ai_analysis": ai_analysis
     })
 
 @router.post("/api/dork")
