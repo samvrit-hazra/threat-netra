@@ -38,20 +38,20 @@ async def read_dashboard(
             )
         },
         {
+            "id": "logs_analyze",
+            "title": "AI Log & Network Forensic Analyzer",
+            "url": "/tools/logs_analyze",
+            "badge": "Active",
+            "badge_class": "badge-status-live",
+            "description": "Autonomous multi-source ingestion and forensic analysis of Syslog, Web, Firewall, and Windows Event streams with AI incident reconstruction."
+        },
+        {
             "id": "legal_contract",
             "title": "Legal Contract & Document Intelligence",
             "url": "#",
             "badge": "Planned",
             "badge_class": "badge-pending",
             "description": "AI-powered analysis of contracts and legal documents to detect hidden loophole clauses and exploitative language."
-        },
-        {
-            "id": "logs_analyze",
-            "title": "AI Log & Network Forensic Analyzer",
-            "url": "#",
-            "badge": "Planned",
-            "badge_class": "badge-pending",
-            "description": "Autonomous analysis of network telemetry, OS logs, and packet traces to identify anomalies and ongoing intrusions."
         }
     ]
 
