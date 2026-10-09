@@ -1,34 +1,277 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Account Authenticity Checker - Threat Netra{% endblock %}
+{% block title %}Profile Authenticity & RSS Scanner - Threat Netra{% endblock %}
 
 {% block content %}
 <div class="tool-container reveal-fade">
+    <!-- HEADER BAR -->
     <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 1rem;">
         <div>
-            <span class="eyebrow">MODULE // IDENTITY FORENSICS</span>
-            <h2 style="margin: 0; font-size: 1.85rem;">Online Account Authenticity Checker</h2>
+            <span class="eyebrow">MODULE // IDENTITY FORENSICS & RECONNAISSANCE</span>
+            <h2 style="margin: 0; font-size: 1.85rem;">Online Account Authenticity &amp; Profile Scanner</h2>
             <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">
-                Forensic identity attribution, coordinated inauthentic behavior tracking, and synthetic botnet detection.
+                Live OSINT profile scanning powered by automated Bing Search RSS telemetry feeds and WaybackWayback Machine Twitter status archivesMachine Twitter status archives.
             </p>
         </div>
         <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             {% if is_governmental %}
-                <span class="badge badge-gov">TIER 01 // DIRECT SCRAPING</span>
+                <span class="badge badge-gov">TIER 01 // DIRECT SCRAPING &amp; RSS</span>
             {% else %}
-                <span class="badge badge-normal">TIER 02 // OSINT DORKS ONLY</span>
+                <span class="badge badge-normal">TIER 02 // OSINT &amp; RSS TELEMETRY</span>
             {% endif %}
             <a href="/dashboard" class="btn btn-subtle btn-sm">&larr; Return to Dashboard</a>
         </div>
     </div>
 
+    <!-- PRIMARY PANEL: BING RSS PROFILE SCANNER -->
+    <div class="panel" style="border-top: 2px solid var(--accent); margin-bottom: 2rem;">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="eyebrow" style="color: var(--accent);">REAL-TIME RECONNAISSANCE</span>
+                <h3 style="margin: 0.25rem 0; font-size: 1.25rem;">Bing Search RSS Profile Scanner</h3>
+                <p style="margin: 0; color: var(--text-secondary); font-size: 0.8125rem;">
+                    Constructs precision search directives (e.g., <code>site:instagram.com "itsfoss"</code>), compiles the syndicated Bing RSS stream URL, and correlatescorrelates live indexed presence and historical archiveshistorical archives.
+                </p>
+            </div>
+            <!-- QUICK PRESETS -->
+            <div style="display: flex; gap: 0.4rem; align-items: center; flex-wrap: wrap;">
+                <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">PRESETS:</span>
+                <button type="button" class="btn btn-subtle btn-sm rss-preset-btn" data-platform="instagram" data-handle="itsfoss">Instagram: itsfoss</button>
+                <button type="button" class="btn btn-subtle btn-sm rss-preset-btn" data-platform="twitter" data-handle="jack">X/Twitter: jack</button>
+                <button type="button" class="btn btn-subtle btn-sm rss-preset-btn" data-platform="github" data-handle="torvalds">GitHub: torvalds</button>
+            </div>
+        </div>
+
+        <div class="panel-body">
+            <form id="bingRssScanForm">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; margin-bottom: 1.25rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="scanHandle">TARGET USERNAME / HANDLE / PROFILE URL</label>
+                        <input type="text" id="scanHandle" required placeholder="e.g. itsfoss, @jack, or https://twitter.com/jack" value="itsfoss">
+                    </div>
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="scanPlatform">TARGET PLATFORM</label>
+                        <select id="scanPlatform">
+                            <option value="instagram" selected>Instagram (instagram.com)</option>
+                            <option value="twitter">X / Twitter (twitter.com &amp; x.com)</option>
+                            <option value="linkedin">LinkedIn (linkedin.com)</option>
+                            <option value="facebook">Facebook (facebook.com)</option>
+                            <option value="telegram">Telegram (t.me)</option>
+                            <option value="github">GitHub (github.com)</option>
+                            <option value="youtube">YouTube (youtube.com)</option>
+                            <option value="reddit">Reddit (reddit.com)</option>
+                            <option value="tiktok">TikTok (tiktok.com)</option>
+                            <option value="threads">Threads (threads.net)</option>
+                            <option value="medium">Medium (medium.com)</option>
+                            <option value="custom">Custom Domain...</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- OPTIONAL CUSTOM DOMAIN ROW -->
+                <div id="customDomainRow" style="display: none; margin-bottom: 1.25rem;">
+                    <div class="form-group" style="margin-bottom: 0;">
+                        <label for="customDomainInput">CUSTOM DOMAIN (HOST)</label>
+                        <input type="text" id="customDomainInput" placeholder="e.g. gitlab.com, mastodon.social, or substack.com">
+                    </div>
+                </div>
+
+                <!-- TWITTER ARCHIVE WILDCARD NOTIFICATION -->
+                <div id="twitterArchiveNotice" style="display: none; margin-bottom: 1.25rem; padding: 0.85rem 1rem; background: rgba(29, 155, 240, 0.08); border: 1px solid rgba(29, 155, 240, 0.25); border-radius: 4px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.35rem;">
+                        <span class="mono" style="font-size: 0.75rem; color: #1D9BF0; font-weight: 600;">TWITTER / X WAYBACK MACHINE STATUS ARCHIVES:</span>
+                        <span class="mono" style="font-size: 0.7rem; color: var(--text-muted);">Historical deleted / edited tweets recovery</span>
+                    </div>
+                    <div class="mono" style="font-size: 0.75rem; color: var(--text-secondary); line-height: 1.6;">
+                        &bull; <a id="previewTwitterArchiveLink" href="#" target="_blank" rel="noopener noreferrer" style="color: #1D9BF0; text-decoration: underline;">https://web.archive.org/web/*/https://twitter.com/<span class="active-tw-user">username</span>/status/*</a><br>
+                        &bull; <a id="previewXArchiveLink" href="#" target="_blank" rel="noopener noreferrer" style="color: #1D9BF0; text-decoration: underline;">https://web.archive.org/web/*/https://x.com/<span class="active-tw-user">username</span>/status/*</a>
+                    </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="queryPreview">
+                        Query Preview: <code>site:instagram.com "itsfoss"</code>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" id="scrapeWaybackBtn" class="btn btn-secondary btn-sm" style="display: none;">
+                            <span id="waybackBtnSpinner" style="display: none;">Querying Archive... </span>
+                            <span>Scrape Wayback Tweets &rarr;</span>
+                        </button>
+                        <button type="submit" id="scanSubmitBtn" class="btn btn-primary btn-sm">
+                            <span id="scanSpinner" style="display: none;">Scanning... </span>
+                            <span>Scan Profile via Bing RSS &rarr;</span>
+                        </button>
+                    </div>
+                </div>
+            </form>
+
+            <!-- LIVE GENERATED URL CARD -->
+            <div id="rssUrlBanner" style="display: none; margin-top: 1.5rem; padding: 1rem 1.25rem; background: #0A0A0A; border: 1px solid var(--border);">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 0.5rem;">
+                    <span class="eyebrow" style="color: var(--accent); margin: 0;">GENERATED BING SEARCH DIRECTIVES</span>
+                    <div style="display: flex; gap: 0.5rem;">
+                        <button type="button" id="copyRssUrlBtn" class="btn btn-subtle btn-sm">Copy RSS Feed URL</button>
+                        <a id="openWebSearchLink" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-subtle btn-sm">Open in Bing Search &nearr;</a>
+                    </div>
+                </div>
+                <div style="margin-bottom: 0.5rem;">
+                    <span class="mono" style="font-size: 0.75rem; color: var(--text-muted); display: block;">SEARCH OPERATOR:</span>
+                    <code id="displaySearchQuery" class="mono" style="font-size: 0.8125rem; color: #fff;"></code>
+                </div>
+                <div>
+                    <span class="mono" style="font-size: 0.75rem; color: var(--text-muted); display: block;">RSS FEED SYNDICATION URL:</span>
+                    <a id="displayRssUrl" href="#" target="_blank" rel="noopener noreferrer" class="mono" style="font-size: 0.75rem; color: var(--accent); word-break: break-all;"></a>
+                </div>
+            </div>
+
+            <!-- SCAN RESULTS CONTAINER -->
+            <div id="rssScanResults" style="display: none; margin-top: 1.75rem;">
+                <!-- METRIC CARDS -->
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="tool-card" style="padding: 1.25rem; background: #0D0D0D;">
+                        <span class="eyebrow">INDEXATION STATUS</span>
+                        <div id="metricStatus" class="mono" style="font-size: 1.35rem; font-weight: 600; color: var(--status-success); margin-top: 0.25rem;">INDEXED</div>
+                        <div class="mono" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">TargetTarget DomainDomain RecordsRecords</div>
+                    </div>
+                    <div class="tool-card" style="padding: 1.25rem; background: #0D0D0D;">
+                        <span class="eyebrow">VERIFIEDVERIFIED CITATIONS</span>
+                        <div id="metricCount" class="mono" style="font-size: 1.35rem; font-weight: 600; color: #fff; margin-top: 0.25rem;">0</div>
+                        <div class="mono" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">CleanTarget FilteredDomain Items</div>
+                    </div>
+                    <div class="tool-card" style="padding: 1.25rem; background: #0D0D0D;">
+                        <span class="eyebrow">AUTHENTICITY SCORE</span>
+                        <div id="metricScore" class="mono" style="font-size: 1.35rem; font-weight: 600; color: var(--accent); margin-top: 0.25rem;">85/100</div>
+                        <div class="mono" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Footprint Confidence</div>
+                    </div>
+                    <div class="tool-card" style="padding: 1.25rem; background: #0D0D0D;">
+                        <span class="eyebrow">BOT RISK ESTIMATE</span>
+                        <div id="metricBotRisk" class="mono" style="font-size: 1.35rem; font-weight: 600; color: var(--status-gov); margin-top: 0.25rem;">LOW</div>
+                        <div class="mono" style="font-size: 0.75rem; color: var(--text-muted); margin-top: 0.25rem;">Organic Signals</div>
+                    </div>
+                </div>
+
+                <!-- DEDICATED TWITTER WAYBACK MACHINE ARCHIVES CARD -->
+                <div id="twitterArchiveResultsCard" class="tool-card" style="display: none; padding: 1.25rem; background: #0A0A0A; border: 1px solid rgba(29, 155, 240, 0.4); margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                        <div>
+                            <span class="eyebrow" style="color: #1D9BF0; margin: 0;">HISTORICAL TELEMETRY // WAYBACK MACHINE</span>
+                            <h4 style="margin: 0.25rem 0 0 0; font-size: 1.05rem; color: #fff;">Twitter / X Status Archives (Wildcard Endpoints)</h4>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem; align-items: center;">
+                            <span id="twSnapshotCountBadge" class="badge" style="background: rgba(29, 155, 240, 0.15); color: #1D9BF0; border: 1px solid #1D9BF0;">ARCHIVE READY</span>
+                            <button type="button" id="fetchTwSnapshotsBtn" class="btn btn-secondary btn-sm">Refresh Archived Tweets</button>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.25rem;">
+                        <!-- Twitter wildcard row -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #050505; border: 1px solid #1c1c1c; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="flex: 1; min-width: 250px;">
+                                <span class="mono" style="font-size: 0.75rem; color: var(--text-muted); display: block;">TWITTER.COM STATUS WILDCARD:</span>
+                                <code id="twArchiveUrlTwitter" class="mono" style="font-size: 0.8125rem; color: #1D9BF0; word-break: break-all;"></code>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-subtle btn-sm" onclick="copyTwUrl('twArchiveUrlTwitter')">Copy</button>
+                                <a id="linkTwArchiveTwitter" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">Explore Archive &nearr;</a>
+                            </div>
+                        </div>
+
+                        <!-- X.com wildcard row -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #050505; border: 1px solid #1c1c1c; flex-wrap: wrap; gap: 0.5rem;">
+                            <div style="flex: 1; min-width: 250px;">
+                                <span class="mono" style="font-size: 0.75rem; color: var(--text-muted); display: block;">X.COM STATUS WILDCARD:</span>
+                                <code id="twArchiveUrlX" class="mono" style="font-size: 0.8125rem; color: #1D9BF0; word-break: break-all;"></code>
+                            </div>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn btn-subtle btn-sm" onclick="copyTwUrl('twArchiveUrlX')">Copy</button>
+                                <a id="linkTwArchiveX" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">Explore Archive &nearr;</a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- SCRAPED SNAPSHOTS TABLE -->
+                    <div id="twSnapshotsContainer">
+                        <span class="mono" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.5rem;">SCRAPED WAYBACK STATUS SNAPSHOTS:</span>
+                        <div id="twSnapshotsLoading" style="display: none; padding: 1rem; text-align: center; color: var(--text-muted); font-size: 0.8125rem;">
+                            Interrogating Wayback Machine CDX servers for archived statuses (typically 10-15 seconds)...
+                        </div>
+                        <div id="twSnapshotsTableWrap" style="overflow-x: auto; max-height: 380px; overflow-y: auto; border: 1px solid #1c1c1c;">
+                            <table style="width: 100%; border-collapse: collapse; font-size: 0.8125rem;">
+                                <thead style="position: sticky; top: 0; background: #111; z-index: 5;">
+                                    <tr style="border-bottom: 1px solid var(--border); text-align: left; color: var(--text-muted);">
+                                        <th style="padding: 0.5rem 0.75rem;">#</th>
+                                        <th style="padding: 0.5rem 0.75rem;">TWEET ID</th>
+                                        <th style="padding: 0.5rem 0.75rem;">CAPTURED TIMESTAMP (UTC)</th>
+                                        <th style="padding: 0.5rem 0.75rem;">STATUS</th>
+                                        <th style="padding: 0.5rem 0.75rem;">ACTION</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="twSnapshotsTableBody" class="mono">
+                                    <tr>
+                                        <td colspan="5" style="padding: 1rem; text-align: center; color: var(--text-muted);">
+                                            Click <strong>Refresh Archived Tweets</strong> to extract captured status snapshots from the Wayback Machine.
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PROFILE ATTRIBUTION SUMMARY CARD -->
+                <div class="tool-card" style="padding: 1.25rem; background: #080808; border: 1px solid var(--border); margin-bottom: 1.5rem;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border);">
+                        <div>
+                            <span class="eyebrow" style="color: var(--accent);">IDENTIFIED PROFILE ENDPOINT</span>
+                            <h4 id="profileEndpointTitle" style="margin: 0.25rem 0 0 0; font-size: 1rem; color: #fff;">-</h4>
+                        </div>
+                        <a id="visitProfileBtn" href="#" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm">Visit Profile Direct &nearr;</a>
+                    </div>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+                        <div>
+                            <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">EXTRACTED FOLLOWERS</span>
+                            <div id="metaFollowers" class="mono" style="font-size: 1.1rem; color: #fff; font-weight: 600;">N/A</div>
+                        </div>
+                        <div>
+                            <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">FOLLOWING</span>
+                            <div id="metaFollowing" class="mono" style="font-size: 1.1rem; color: #fff; font-weight: 600;">N/A</div>
+                        </div>
+                        <div>
+                            <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">POST COUNT</span>
+                            <div id="metaPosts" class="mono" style="font-size: 1.1rem; color: #fff; font-weight: 600;">N/A</div>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="mono" style="font-size: 0.75rem; color: var(--text-muted); display: block; margin-bottom: 0.25rem;">BIO / RECENT ACTIVITY SNIPPET:</span>
+                        <div id="metaBio" style="font-size: 0.8125rem; color: var(--text-secondary); background: #000; padding: 0.75rem; border: 1px solid #1c1c1c; line-height: 1.5;"></div>
+                    </div>
+                </div>
+
+                <!-- FEED ITEMS TABLE -->
+                <div class="tool-card" style="padding: 1.25rem; background: #080808; border: 1px solid var(--border);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+                        <div>
+                            <span class="eyebrow">VERIFIED DOMAINVERIFIED DOMAIN TELEMETRY STREAM</span>
+                            <h4 style="margin: 0; font-size: 1rem;">TargetTarget PlatformPlatform Feed Items (<span id="resultsCountBadge">0</span>)</h4>
+                        </div>
+                        <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);" id="channelFeedTitle"></span>
+                    </div>
+
+                    <div id="rssItemsList" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECONDARY PANEL: ACCORDION FOR OTHER TIER FEATURES -->
     {% if is_governmental %}
-    <!-- GOVERNMENTAL USER INTERFACE: DIRECT AUTOMATED SCRAPING -->
-    <div class="panel" style="border-top: 2px solid var(--status-gov);">
+    <!-- GOVERNMENTAL USER INTERFACE: DEEP CRAWLER TELEMETRY -->
+    <div class="panel" style="border-top: 2px solid var(--status-gov); margin-bottom: 2rem;">
         <div class="panel-header">
             <span class="eyebrow" style="color: var(--status-gov);">CLEARANCE LEVEL // ELEVATED COLLECTION</span>
-            <h3>Governmental Collection: Direct Social Media Scraping</h3>
-            <p>Direct headless crawler execution. Extracts bio metadata, follower graph vertices, and historical telemetry for automated bot score computation.</p>
+            <h3>Governmental Collection: Deep Crawler &amp; Wayback Ingestion&amp; Wayback Ingestion</h3>
+            <p>ExecutesExecutes deepdeep OSINT scraping.scraping. ForFor TwitterTwitter // XX targets,targets, interrogates Wayback Machine status archives to retrieve historical and deleted tweetsinterrogates Wayback Machine status archives to retrieve historical and deleted tweets.</p>
         </div>
         <div class="panel-body">
             <form id="govScrapeForm">
@@ -49,60 +292,466 @@
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 2rem; margin-bottom: 2rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); flex-wrap: wrap;">
+                <div style="display: flex; gap: 2rem; margin-bottom: 1.5rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); flex-wrap: wrap;">
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="checkbox" id="scrapeFollowers" checked style="accent-color: var(--status-gov);"> 
                         COLLECT FOLLOWER / FOLLOWING GRAPH
                     </label>
                     <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
                         <input type="checkbox" id="scrapePosts" checked style="accent-color: var(--status-gov);"> 
-                        INGEST TIMELINE POSTS & SENTIMENT VECTORS
+                        INGEST TIMELINE POSTS &amp; WAYBACKWAYBACK STATUSESSTATUSES
                     </label>
                 </div>
 
-                <button type="submit" id="scrapeSubmit" class="btn btn-gov">Initialize Crawler Telemetry</button>
+                <button type="submit" id="scrapeSubmit" class="btn btn-gov">Initialize Deep Forensics</button>
             </form>
 
-            <div id="scrapeResult" style="display: none; margin-top: 2.5rem; border: 1px solid var(--border); padding: 1.5rem; background-color: var(--bg);">
+            <div id="scrapeResult" style="display: none; margin-top: 2rem; border: 1px solid var(--border); padding: 1.5rem; background-color: var(--bg);">
                 <span class="eyebrow" style="color: var(--status-gov);">OUTPUT // FORENSIC COLLECTION LOG</span>
                 <pre id="scrapeOutput" class="mono" style="background: var(--bg-elevated); color: var(--status-gov); padding: 1.25rem; border: 1px solid var(--border); overflow-x: auto; font-size: 0.8125rem; line-height: 1.5;"></pre>
             </div>
         </div>
     </div>
+    {% endif %}
 
-    {% else %}
-    <!-- NORMAL USER INTERFACE: OSINT SEARCH OPERATORS (DORKS) -->
-    <div class="panel" style="border-top: 2px solid var(--accent);">
+    <!-- OSINT SEARCH OPERATORS (DORKS) PANEL -->
+    <div class="panel" style="border-top: 1px solid var(--border);">
         <div class="panel-header">
-            <span class="eyebrow" style="color: var(--accent);">CLEARANCE LEVEL // STANDARD INVESTIGATION</span>
-            <h3>Standard Mode: OSINT Web Search Operators (Dorking)</h3>
-            <p>Constructs specialized search engine parameters for digital footprint discovery in strict compliance with legal non-scraping directives.</p>
+            <span class="eyebrow" style="color: var(--text-muted);">OSINT UTILITY</span>
+            <h3>Cross-Platform Dorking Queries</h3>
+            <p>Constructs specialized Google / DuckDuckGo / Bing search syntax for manual investigation and cross-corroboration.</p>
         </div>
         <div class="panel-body">
-            <div class="info-banner" style="margin-bottom: 2rem;">
-                <strong>REGULATORY ADVISORY</strong>
-                Automated direct account crawling is restricted to Governmental clearance accounts. Standard tier accounts deploy search operators to corroborate identity signals via publicly indexed web records.
-            </div>
-
             <form id="normalDorkForm">
-                <div class="form-group">
-                    <label for="dorkTarget">TARGET IDENTIFIER, HANDLE, OR FULL NAME</label>
-                    <input type="text" id="dorkTarget" required placeholder="target_handle or 'Full Name'">
+                <div class="form-group" style="display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap;">
+                    <div style="flex: 1; min-width: 240px;">
+                        <label for="dorkTarget">TARGET IDENTIFIER OR USERNAME</label>
+                        <input type="text" id="dorkTarget" placeholder="e.g. itsfoss">
+                    </div>
+                    <button type="submit" class="btn btn-secondary btn-sm" style="height: 42px;">Compile Dorks</button>
                 </div>
-                <button type="submit" class="btn btn-normal">Generate Search Operators</button>
             </form>
 
-            <div id="dorkResult" style="display: none; margin-top: 2.5rem;">
-                <span class="eyebrow">COMPILED OSINT SEARCH SYNTAX</span>
-                <div id="dorkList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
+            <div id="dorkResult" style="display: none; margin-top: 1.5rem;">
+                <div id="dorkList" style="display: flex; flex-direction: column; gap: 0.6rem;"></div>
             </div>
         </div>
     </div>
-    {% endif %}
 </div>
 
 <script>
-    // Handle Governmental Scraping Form
+document.addEventListener("DOMContentLoaded", function () {
+    const scanHandle = document.getElementById("scanHandle");
+    const scanPlatform = document.getElementById("scanPlatform");
+    const customDomainRow = document.getElementById("customDomainRow");
+    const customDomainInput = document.getElementById("customDomainInput");
+    const queryPreview = document.getElementById("queryPreview");
+    const bingRssScanForm = document.getElementById("bingRssScanForm");
+    const scanSubmitBtn = document.getElementById("scanSubmitBtn");
+    const scanSpinner = document.getElementById("scanSpinner");
+
+    const scrapeWaybackBtn = document.getElementById("scrapeWaybackBtn");
+    const waybackBtnSpinner = document.getElementById("waybackBtnSpinner");
+    const twitterArchiveNotice = document.getElementById("twitterArchiveNotice");
+    const previewTwitterArchiveLink = document.getElementById("previewTwitterArchiveLink");
+    const previewXArchiveLink = document.getElementById("previewXArchiveLink");
+
+    const rssUrlBanner = document.getElementById("rssUrlBanner");
+    const displaySearchQuery = document.getElementById("displaySearchQuery");
+    const displayRssUrl = document.getElementById("displayRssUrl");
+    const openWebSearchLink = document.getElementById("openWebSearchLink");
+    const copyRssUrlBtn = document.getElementById("copyRssUrlBtn");
+
+    const rssScanResults = document.getElementById("rssScanResults");
+    const metricStatus = document.getElementById("metricStatus");
+    const metricCount = document.getElementById("metricCount");
+    const metricScore = document.getElementById("metricScore");
+    const metricBotRisk = document.getElementById("metricBotRisk");
+
+    const twitterArchiveResultsCard = document.getElementById("twitterArchiveResultsCard");
+    const twArchiveUrlTwitter = document.getElementById("twArchiveUrlTwitter");
+    const twArchiveUrlX = document.getElementById("twArchiveUrlX");
+    const linkTwArchiveTwitter = document.getElementById("linkTwArchiveTwitter");
+    const linkTwArchiveX = document.getElementById("linkTwArchiveX");
+    const twSnapshotCountBadge = document.getElementById("twSnapshotCountBadge");
+    const fetchTwSnapshotsBtn = document.getElementById("fetchTwSnapshotsBtn");
+    const twSnapshotsLoading = document.getElementById("twSnapshotsLoading");
+    const twSnapshotsTableBody = document.getElementById("twSnapshotsTableBody");
+
+    const profileEndpointTitle = document.getElementById("profileEndpointTitle");
+    const visitProfileBtn = document.getElementById("visitProfileBtn");
+    const metaFollowers = document.getElementById("metaFollowers");
+    const metaFollowing = document.getElementById("metaFollowing");
+    const metaPosts = document.getElementById("metaPosts");
+    const metaBio = document.getElementById("metaBio");
+    const rssItemsList = document.getElementById("rssItemsList");
+    const resultsCountBadge = document.getElementById("resultsCountBadge");
+    const channelFeedTitle = document.getElementById("channelFeedTitle");
+
+letcurrentActiveTwitterHandle="";
+
+    const PLATFORM_MAP = {
+        "instagram": "instagram.com",
+        "twitter": "twitter.com",
+        "linkedin": "linkedin.com",
+        "facebook": "facebook.com",
+        "telegram": "t.me",
+        "github": "github.com",
+        "youtube": "youtube.com",
+        "reddit": "reddit.com",
+        "tiktok": "tiktok.com",
+        "threads": "threads.net",
+        "medium": "medium.com"
+    };
+
+    function getSelectedDomain() {
+        const p = scanPlatform.value;
+        if (p === "custom") {
+            return customDomainInput.value.trim() || "example.com";
+        }
+        return PLATFORM_MAP[p] || "instagram.com";
+    }
+
+    function cleanUsername(handle) {
+        let u = (handle || "").trim();
+        if (u.includes("://") || u.includes("/")) {
+            try {
+                const parts = u.replace(/^https?:\/\//, '').split('/');
+                if (parts.length > 1 && parts[1]) {
+                    u = parts[1];
+                } else {
+                    u = parts[0];
+                }
+            } catch(e) {}
+        }
+        return u.replace(/^@/, '').replace(/["']/g, '').trim();
+    }
+
+    function updatePreview() {
+        const domain = getSelectedDomain();
+        const user = cleanUsername(scanHandle.value) || "username";
+        queryPreview.innerHTML = `Query Preview: <code>site:${domain} "${user}"</code>`;
+
+        if (scanPlatform.value === "twitter") {
+            twitterArchiveNotice.style.display = "block";
+            scrapeWaybackBtn.style.display = "inline-block";
+            document.querySelectorAll(".active-tw-user").forEach(el => el.textContent = user);
+            const twUrl = `https://web.archive.org/web/*/https://twitter.com/${user}/status/*`;
+            const xUrl = `https://web.archive.org/web/*/https://x.com/${user}/status/*`;
+            previewTwitterArchiveLink.href = twUrl;
+            previewTwitterArchiveLink.textContent = twUrl;
+            previewXArchiveLink.href = xUrl;
+            previewXArchiveLink.textContent = xUrl;
+        } else {
+            twitterArchiveNotice.style.display = "none";
+            scrapeWaybackBtn.style.display = "none";
+        }
+    }
+
+    scanPlatform.addEventListener("change", () => {
+        if (scanPlatform.value === "custom") {
+            customDomainRow.style.display = "block";
+        } else {
+            customDomainRow.style.display = "none";
+        }
+        updatePreview();
+    });
+
+    scanHandle.addEventListener("input", updatePreview);
+    customDomainInput?.addEventListener("input", updatePreview);
+    updatePreview();
+
+    // Preset Buttons
+    document.querySelectorAll(".rss-preset-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+            const platform = btn.getAttribute("data-platform");
+            const handle = btn.getAttribute("data-handle");
+            scanPlatform.value = platform;
+            customDomainRow.style.display = "none";
+            scanHandle.value = handle;
+            updatePreview();
+            bingRssScanForm.dispatchEvent(new Event("submit"));
+        });
+    });
+
+    // Form Submit: Run Bing RSS Profile Scan
+    bingRssScanForm.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const handle = scanHandle.value.trim();
+        const platform = scanPlatform.value === "custom" ? (customDomainInput.value.trim() || "custom.com") : scanPlatform.value;
+
+        if (!handle) {
+            alert("Please enter a username or handle to scan.");
+            return;
+        }
+
+        scanSubmitBtn.disabled = true;
+        scanSpinner.style.display = "inline";
+
+        try {
+            const res = await fetch("/tools/profile_auth/api/scan", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ handle, platform })
+            });
+
+            if (!res.ok) {
+                const err = await res.json();
+                throw new Error(err.detail || "Scanning failed.");
+            }
+
+            const data = await res.json();
+            renderScanResults(data);
+
+            // If Twitter, automatically trigger Wayback status scraping in the background
+            if (platform === "twitter" || data.twitter_archive) {
+                currentActiveTwitterHandle = cleanUsername(handle);
+                triggerWaybackScrape(currentActiveTwitterHandle);
+            }
+        } catch (err) {
+            alert("Profile Scan Error: " + err.message);
+        } finally {
+            scanSubmitBtn.disabled = false;
+            scanSpinner.style.display = "none";
+        }
+    });
+
+    // Dedicated Scrape Wayback Tweets Button
+    scrapeWaybackBtn.addEventListener("click", () => {
+        const handle = cleanUsername(scanHandle.value);
+        if (!handle) {
+            alert("Please enter a Twitter handle.");
+            return;
+        }
+        currentActiveTwitterHandle = handle;
+        rssScanResults.style.display = "block";
+        twitterArchiveResultsCard.style.display = "block";
+        twitterArchiveResultsCard.scrollIntoView({ behavior: "smooth" });
+        triggerWaybackScrape(handle);
+    });
+
+    fetchTwSnapshotsBtn.addEventListener("click", () => {
+        if (currentActiveTwitterHandle) {
+            triggerWaybackScrape(currentActiveTwitterHandle);
+        } else {
+            const handle = cleanUsername(scanHandle.value);
+            if (handle) triggerWaybackScrape(handle);
+        }
+    });
+
+    async function triggerWaybackScrape(handle) {
+        if (!handle) return;
+        currentActiveTwitterHandle = handle;
+
+        const twUrl = `https://web.archive.org/web/*/https://twitter.com/${handle}/status/*`;
+        const xUrl = `https://web.archive.org/web/*/https://x.com/${handle}/status/*`;
+        twArchiveUrlTwitter.textContent = twUrl;
+        linkTwArchiveTwitter.href = twUrl;
+        twArchiveUrlX.textContent = xUrl;
+        linkTwArchiveX.href = xUrl;
+
+        twitterArchiveResultsCard.style.display = "block";
+        twSnapshotsLoading.style.display = "block";
+        twSnapshotsTableBody.innerHTML = `<tr><td colspan="5" style="padding: 1.5rem; text-align: center; color: var(--text-muted);"><span class="mono">Connecting to Wayback Machine CDX servers for @${escapeHtml(handle)} status captures...</span></td></tr>`;
+        twSnapshotCountBadge.textContent = "SCRAPING ARCHIVE...";
+        scrapeWaybackBtn.disabled = true;
+        waybackBtnSpinner.style.display = "inline";
+
+        try {
+            const resp = await fetch("/tools/profile_auth/api/twitter-archive", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ handle })
+            });
+
+            if (!resp.ok) throw new Error("Wayback scraping request failed.");
+            const data = await resp.json();
+            renderWaybackSnapshots(data);
+        } catch (err) {
+            twSnapshotsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 1rem; text-align: center; color: var(--status-warning);">
+                        Wayback query timed out or server is busy. You can directly browse the complete calendar view using the wildcard links above.
+                    </td>
+                </tr>`;
+            twSnapshotCountBadge.textContent = "EXPLORE VIA CALENDAR";
+        } finally {
+            twSnapshotsLoading.style.display = "none";
+            scrapeWaybackBtn.disabled = false;
+            waybackBtnSpinner.style.display = "none";
+        }
+    }
+
+    function renderWaybackSnapshots(data) {
+        const snapshots = data.snapshots || [];
+        twSnapshotCountBadge.textContent = `${snapshots.length} CAPTURES FOUND`;
+
+        if (snapshots.length === 0) {
+            twSnapshotsTableBody.innerHTML = `
+                <tr>
+                    <td colspan="5" style="padding: 1.5rem; text-align: center; color: var(--text-muted);">
+                        No individual status captures indexed in CDX. Direct calendar archives are available via the links above.
+                    </td>
+                </tr>`;
+            return;
+        }
+
+        twSnapshotsTableBody.innerHTML = "";
+        snapshots.forEach((snap, idx) => {
+            const tr = document.createElement("tr");
+            tr.style.borderBottom = "1px solid #1a1a1a";
+
+            const codeColor = (snap.status_code === "200") ? "var(--status-success)" : "var(--status-gov)";
+
+            tr.innerHTML = `
+                <td style="padding: 0.6rem 0.75rem; color: var(--text-muted);">${idx + 1}</td>
+                <td style="padding: 0.6rem 0.75rem; color: #fff; font-weight: 500;">${escapeHtml(snap.tweet_id)}</td>
+                <td style="padding: 0.6rem 0.75rem; color: var(--text-secondary);">${escapeHtml(snap.formatted_date || snap.timestamp)}</td>
+                <td style="padding: 0.6rem 0.75rem;"><span style="color: ${codeColor}; font-weight: 600;">${escapeHtml(snap.status_code || '200')}</span></td>
+                <td style="padding: 0.6rem 0.75rem;">
+                    <a href="${snap.wayback_url}" target="_blank" rel="noopener noreferrer" class="btn btn-subtle btn-sm" style="font-size: 0.75rem;">
+                        View Archived Tweet &nearr;
+                    </a>
+                </td>
+            `;
+            twSnapshotsTableBody.appendChild(tr);
+        });
+    }
+
+    function renderScanResults(data) {
+        if (data.status === "error") {
+            alert(data.message || "Failed to scan via Bing RSS.");
+            return;
+        }
+
+        // Show Generated Query & RSS URL banner
+        rssUrlBanner.style.display = "block";
+        displaySearchQuery.textContent = data.search_query || "";
+        displayRssUrl.textContent = data.rss_url || "";
+        displayRssUrl.href = data.rss_url || "#";
+        openWebSearchLink.href = data.web_search_url || data.rss_url;
+
+        copyRssUrlBtn.onclick = () => {
+            navigator.clipboard.writeText(data.rss_url).then(() => {
+                const prev = copyRssUrlBtn.textContent;
+                copyRssUrlBtn.textContent = "Copied to Clipboard!";
+                setTimeout(() => copyRssUrlBtn.textContent = prev, 2000);
+            });
+        };
+
+        // Render Metrics
+        rssScanResults.style.display = "block";
+        metricCount.textContent = data.total_results || 0;
+        resultsCountBadge.textContent = data.total_results || 0;
+        channelFeedTitle.textContent = data.channel_title || "";
+
+        if (data.presence_status === "INDEXED_ACTIVE") {
+            metricStatus.textContent = "CONFIRMED INDEXED";
+            metricStatus.style.color = "var(--status-success)";
+        } else {
+            metricStatus.textContent = "NOT FOUND / UNINDEXEDFOUND / UNINDEXED";
+            metricStatus.style.color = "var(--status-warning)";
+        }
+
+        const meta = data.metadata || {};
+        metricScore.textContent = `${meta.authenticity_score || 70}/100`;
+        metricBotRisk.textContent = (meta.bot_risk_estimate || "LOW").toUpperCase();
+        if (meta.bot_risk_estimate === "High") {
+            metricBotRisk.style.color = "var(--status-error)";
+        } else if (meta.bot_risk_estimate === "Medium") {
+            metricBotRisk.style.color = "var(--status-warning)";
+        } else {
+            metricBotRisk.style.color = "var(--status-success)";
+        }
+
+        // Render Twitter Archive Card if Twitter / X
+        if (data.twitter_archive) {
+            twitterArchiveResultsCard.style.display = "block";
+            const twUrl = data.twitter_archive.twitter_status_archive || `https://web.archive.org/web/*/https://twitter.com/${data.handle}/status/*`;
+            const xUrl = data.twitter_archive.x_status_archive || `https://web.archive.org/web/*/https://x.com/${data.handle}/status/*`;
+
+            twArchiveUrlTwitter.textContent = twUrl;
+            linkTwArchiveTwitter.href = twUrl;
+
+            twArchiveUrlX.textContent = xUrl;
+            linkTwArchiveX.href = xUrl;
+        } else {
+            twitterArchiveResultsCard.style.display = "none";
+        }
+
+        // Profile Attribution details
+        const primaryLink = data.primary_profile_url || `https://${data.domain}/${data.handle}`;
+        profileEndpointTitle.textContent = primaryLink;
+        visitProfileBtn.href = primaryLink;
+
+        metaFollowers.textContent = meta.followers || "N/A";
+        metaFollowing.textContent = meta.following || "N/A";
+        metaPosts.textContent = meta.posts || "N/A";
+        metaBio.textContent = meta.bio_snippet || "No description snippet available.";
+
+        // Render verified items
+        rssItemsList.innerHTML = "";
+        const results = data.results || [];
+
+        if (results.length === 0) {
+            rssItemsList.innerHTML = `
+                <div style="padding: 1.25rem; color: var(--text-muted); font-size: 0.8125rem; text-align: center; background: #050505; border: 1px dashed var(--border);">
+                    No indexed entries returned on target domain <strong>${escapeHtml(data.domain)}</strong> for this identifier.<br>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; display: inline-block;">
+                        (Unrelated search fallbacks and external web recommendations were excluded by domain boundary filter)
+                    </span>
+                </div>`;
+            rssItemsList.innerHTML = `
+                <div style="padding: 1.25rem; color: var(--text-muted); font-size: 0.8125rem; text-align: center; background: #050505; border: 1px dashed var(--border);">
+                    No indexed entries returned on target domain <strong>${escapeHtml(data.domain)}</strong> for this identifier.<br>
+                    <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; display: inline-block;">
+                        (Unrelated search fallbacks and external web recommendations were excluded by domain boundary filter)
+                    </span>
+                </div>`;
+        } else {
+            results.forEach((item, index) => {
+                const card = document.createElement("div");
+                card.style.background = "#0E0E0E";
+                card.style.border = item.is_profile_match ? "1px solid var(--accent)" : "1px solid var(--border)";
+                card.style.padding = "1rem";
+
+                const badge = item.is_profile_match 
+                    ? `<span class="badge" style="background: rgba(0, 229, 255, 0.1); color: var(--accent); border: 1px solid var(--accent); font-size: 0.7rem;">DIRECT PROFILE MATCH</span>`
+                    : `<span class="badge" style="background: rgba(255, 255, 255, 0.05); color: var(--text-muted); font-size: 0.7rem;">INDEXED CITATION #${index + 1}</span>`;
+
+                card.innerHTML = `
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 0.5rem; margin-bottom: 0.35rem; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 0.5rem;">
+                            ${badge}
+                            <a href="${item.link}" target="_blank" rel="noopener noreferrer" style="font-weight: 500; font-size: 0.875rem; color: #fff; text-decoration: underline;">
+                                ${escapeHtml(item.title || item.link)}
+                            </a>
+                        </div>
+                        <span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">${item.pub_date || ''}</span>
+                    </div>
+                    <div class="mono" style="font-size: 0.75rem; color: var(--accent); margin-bottom: 0.35rem; word-break: break-all;">
+                        ${escapeHtml(item.link)}
+                    </div>
+                    <div style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5;">
+                        ${escapeHtml(item.description || 'No snippet description available.')}
+                    </div>
+                `;
+                rssItemsList.appendChild(card);
+            });
+        }
+
+        // Scroll smoothly to results
+        rssUrlBanner.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    window.copyTwUrl = function (elementId) {
+        const text = document.getElementById(elementId).textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            alert("Copied Wayback Archive URL to clipboard:\n" + text);
+        });
+    };
+
+    // Governmental Scraping Handler
     document.getElementById('govScrapeForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         const handle = document.getElementById('scrapeTarget').value;
@@ -114,9 +763,9 @@
         const output = document.getElementById('scrapeOutput');
 
         btn.disabled = true;
-        btn.textContent = 'EXECUTING HEADLESS CRAWLER...';
+        btn.textContent = 'EXECUTING OSINT & CRAWLER...';
         resBox.style.display = 'block';
-        output.textContent = 'CONNECTING TO SCRAPING CLUSTER...\nRESOLVING ENTITY GRAPH...\nANALYZING BOT VECTORS...';
+        output.textContent = 'CONNECTING TO SCRAPING CLUSTER & WAYBACKWAYBACK ARCHIVEARCHIVE RECONNAISSANCERECONNAISSANCE...\nRESOLVING ENTITY GRAPH...\nANALYZING BOT VECTORS...';
 
         try {
             const res = await fetch('/tools/profile_auth/api/scrape', {
@@ -135,16 +784,21 @@
             output.textContent = 'EXECUTION ERROR: ' + err.message;
         } finally {
             btn.disabled = false;
-            btn.textContent = 'Initialize Crawler Telemetry';
+            btn.textContent = 'Initialize Deep Forensics';
         }
     });
 
-    // Handle Normal OSINT Dorking Form
+    // Normal OSINT Dorking Handler
     document.getElementById('normalDorkForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const target = document.getElementById('dorkTarget').value;
+        const target = (document.getElementById('dorkTarget').value.trim()) || scanHandle.value.trim();
         const resBox = document.getElementById('dorkResult');
         const list = document.getElementById('dorkList');
+
+        if (!target) {
+            alert("Please provide an identifier or handle.");
+            return;
+        }
 
         resBox.style.display = 'block';
         list.innerHTML = '<span class="mono" style="font-size: 0.8125rem; color: var(--text-muted);">SYNTHESIZING OPERATORS...</span>';
@@ -159,25 +813,36 @@
             list.innerHTML = '';
             data.generated_operators.forEach(op => {
                 const item = document.createElement('div');
-                item.style.padding = '1rem 1.25rem';
+                item.style.padding = '0.75rem 1rem';
                 item.style.backgroundColor = 'var(--bg)';
                 item.style.border = '1px solid var(--border)';
                 item.style.display = 'flex';
                 item.style.justifyContent = 'space-between';
                 item.style.alignItems = 'center';
 
-                const googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(op);
+                const bingUrl = 'https://www.bing.com/search?q=' + encodeURIComponent(op);
                 item.innerHTML = `
-                    <code class="mono" style="color: var(--text-primary); font-size: 0.8125rem;">${op}</code>
-                    <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-subtle btn-sm" style="margin-left: 1.5rem;">
-                        Search &nearr;
+                    <code class="mono" style="color: var(--text-primary); font-size: 0.8125rem;">${escapeHtml(op)}</code>
+                    <a href="${bingUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-subtle btn-sm" style="margin-left: 1rem;">
+                        Search Bing &nearr;
                     </a>
                 `;
                 list.appendChild(item);
             });
         } catch (err) {
-            list.innerHTML = '<span class="mono" style="color: var(--status-error);">ERROR GENERATING SYNTAX: ' + err.message + '</span>';
+            list.innerHTML = '<span class="mono" style="color: var(--status-error); font-size: 0.8125rem;">ERROR: ' + err.message + '</span>';
         }
     });
+
+    function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+});
 </script>
 {% endblock %}
