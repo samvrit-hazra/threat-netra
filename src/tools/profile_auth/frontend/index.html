@@ -3,41 +3,43 @@
 {% block title %}Account Authenticity Checker - Threat Netra{% endblock %}
 
 {% block content %}
-<div class="tool-container">
-    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+<div class="tool-container reveal-fade">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 1rem;">
         <div>
-            <h2 style="margin: 0;">Online Account Authenticity Checker</h2>
-            <p style="margin: 0.25rem 0 0 0; color: #64748b;">
-                Forensic identity verification and synthetic botnet profile detection
+            <span class="eyebrow">MODULE // IDENTITY FORENSICS</span>
+            <h2 style="margin: 0; font-size: 1.85rem;">Online Account Authenticity Checker</h2>
+            <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">
+                Forensic identity attribution, coordinated inauthentic behavior tracking, and synthetic botnet detection.
             </p>
         </div>
-        <div style="display: flex; gap: 0.75rem; align-items: center;">
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
             {% if is_governmental %}
-                <span class="badge badge-gov">Governmental Tier (Direct Scraping)</span>
+                <span class="badge badge-gov">TIER 01 // DIRECT SCRAPING</span>
             {% else %}
-                <span class="badge badge-normal">Normal User Tier (OSINT Dorks)</span>
+                <span class="badge badge-normal">TIER 02 // OSINT DORKS ONLY</span>
             {% endif %}
-            <a href="/dashboard" class="btn btn-secondary btn-sm">&larr; Back to Dashboard</a>
+            <a href="/dashboard" class="btn btn-subtle btn-sm">&larr; Return to Dashboard</a>
         </div>
     </div>
 
     {% if is_governmental %}
     <!-- GOVERNMENTAL USER INTERFACE: DIRECT AUTOMATED SCRAPING -->
-    <div class="panel" style="border-left: 4px solid var(--gov-color);">
+    <div class="panel" style="border-top: 2px solid var(--status-gov);">
         <div class="panel-header">
-            <h3 style="color: #0f766e;">🏛️ High-Privilege Mode: Direct Social Media Scraping</h3>
-            <p>Directly connects to web scrapers to download bios, follower networks, and post histories for automated bot score computation.</p>
+            <span class="eyebrow" style="color: var(--status-gov);">CLEARANCE LEVEL // ELEVATED COLLECTION</span>
+            <h3>Governmental Collection: Direct Social Media Scraping</h3>
+            <p>Direct headless crawler execution. Extracts bio metadata, follower graph vertices, and historical telemetry for automated bot score computation.</p>
         </div>
-        <div style="padding: 1.5rem;">
+        <div class="panel-body">
             <form id="govScrapeForm">
-                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+                <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; margin-bottom: 1.5rem;">
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="scrapeTarget">Account Handle or Profile URL</label>
+                        <label for="scrapeTarget">TARGET HANDLE OR UNIFORM RESOURCE IDENTIFIER</label>
                         <input type="text" id="scrapeTarget" required placeholder="@target_profile or https://x.com/target">
                     </div>
                     <div class="form-group" style="margin-bottom: 0;">
-                        <label for="scrapePlatform">Platform</label>
-                        <select id="scrapePlatform" style="width: 100%; padding: 0.65rem; border: 1px solid #cbd5e1; border-radius: 6px;">
+                        <label for="scrapePlatform">NETWORK TARGET</label>
+                        <select id="scrapePlatform">
                             <option value="twitter">X / Twitter</option>
                             <option value="instagram">Instagram</option>
                             <option value="linkedin">LinkedIn</option>
@@ -47,43 +49,51 @@
                     </div>
                 </div>
 
-                <div style="display: flex; gap: 1.5rem; margin-bottom: 1.25rem; font-size: 0.9rem;">
-                    <label><input type="checkbox" id="scrapeFollowers" checked> Extract Followers / Following Graph</label>
-                    <label><input type="checkbox" id="scrapePosts" checked> Scrape Timeline Posts (Sentiment & Pattern Analysis)</label>
+                <div style="display: flex; gap: 2rem; margin-bottom: 2rem; font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-secondary); flex-wrap: wrap;">
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="scrapeFollowers" checked style="accent-color: var(--status-gov);"> 
+                        COLLECT FOLLOWER / FOLLOWING GRAPH
+                    </label>
+                    <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                        <input type="checkbox" id="scrapePosts" checked style="accent-color: var(--status-gov);"> 
+                        INGEST TIMELINE POSTS & SENTIMENT VECTORS
+                    </label>
                 </div>
 
-                <button type="submit" id="scrapeSubmit" class="btn btn-gov">Launch Automated Crawler</button>
+                <button type="submit" id="scrapeSubmit" class="btn btn-gov">Initialize Crawler Telemetry</button>
             </form>
 
-            <div id="scrapeResult" style="display: none; margin-top: 1.5rem; background: #f8fafc; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.25rem;">
-                <h4 style="margin: 0 0 0.5rem 0; color: #0f766e;">Automated Scraping Report</h4>
-                <pre id="scrapeOutput" style="background: #0f172a; color: #38bdf8; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85rem;"></pre>
+            <div id="scrapeResult" style="display: none; margin-top: 2.5rem; border: 1px solid var(--border); padding: 1.5rem; background-color: var(--bg);">
+                <span class="eyebrow" style="color: var(--status-gov);">OUTPUT // FORENSIC COLLECTION LOG</span>
+                <pre id="scrapeOutput" class="mono" style="background: var(--bg-elevated); color: var(--status-gov); padding: 1.25rem; border: 1px solid var(--border); overflow-x: auto; font-size: 0.8125rem; line-height: 1.5;"></pre>
             </div>
         </div>
     </div>
 
     {% else %}
     <!-- NORMAL USER INTERFACE: OSINT SEARCH OPERATORS (DORKS) -->
-    <div class="panel" style="border-left: 4px solid var(--normal-color);">
+    <div class="panel" style="border-top: 2px solid var(--accent);">
         <div class="panel-header">
-            <h3 style="color: #1e40af;">🔎 Standard Mode: Legal OSINT Web Search Operators (Dorking)</h3>
-            <p>Generates targeted search engine queries to gather footprint signals while complying with anti-scraping policies.</p>
+            <span class="eyebrow" style="color: var(--accent);">CLEARANCE LEVEL // STANDARD INVESTIGATION</span>
+            <h3>Standard Mode: OSINT Web Search Operators (Dorking)</h3>
+            <p>Constructs specialized search engine parameters for digital footprint discovery in strict compliance with legal non-scraping directives.</p>
         </div>
-        <div style="padding: 1.5rem;">
-            <div class="info-banner" style="margin-bottom: 1.25rem;">
-                <strong>Notice:</strong> Direct automated account scraping is restricted to authorized Governmental Users. Standard tier accounts utilize Google search operators and open-web queries to audit account authenticity legally.
+        <div class="panel-body">
+            <div class="info-banner" style="margin-bottom: 2rem;">
+                <strong>REGULATORY ADVISORY</strong>
+                Automated direct account crawling is restricted to Governmental clearance accounts. Standard tier accounts deploy search operators to corroborate identity signals via publicly indexed web records.
             </div>
 
             <form id="normalDorkForm">
                 <div class="form-group">
-                    <label for="dorkTarget">Target Username, Handle, or Real Name</label>
-                    <input type="text" id="dorkTarget" required placeholder="e.g. target_operative or 'John Doe'">
+                    <label for="dorkTarget">TARGET IDENTIFIER, HANDLE, OR FULL NAME</label>
+                    <input type="text" id="dorkTarget" required placeholder="target_handle or 'Full Name'">
                 </div>
-                <button type="submit" class="btn btn-normal">Generate OSINT Search Dorks</button>
+                <button type="submit" class="btn btn-normal">Generate Search Operators</button>
             </form>
 
-            <div id="dorkResult" style="display: none; margin-top: 1.5rem;">
-                <h4 style="margin: 0 0 0.75rem 0;">Generated OSINT Queries:</h4>
+            <div id="dorkResult" style="display: none; margin-top: 2.5rem;">
+                <span class="eyebrow">COMPILED OSINT SEARCH SYNTAX</span>
                 <div id="dorkList" style="display: flex; flex-direction: column; gap: 0.75rem;"></div>
             </div>
         </div>
@@ -104,9 +114,9 @@
         const output = document.getElementById('scrapeOutput');
 
         btn.disabled = true;
-        btn.textContent = 'Executing crawler & analyzing botnet vectors...';
+        btn.textContent = 'EXECUTING HEADLESS CRAWLER...';
         resBox.style.display = 'block';
-        output.textContent = 'Connecting to high-speed scraping cluster...\nFetching user profile...\nAnalyzing followers...';
+        output.textContent = 'CONNECTING TO SCRAPING CLUSTER...\nRESOLVING ENTITY GRAPH...\nANALYZING BOT VECTORS...';
 
         try {
             const res = await fetch('/tools/profile_auth/api/scrape', {
@@ -122,10 +132,10 @@
             const data = await res.json();
             output.textContent = JSON.stringify(data, null, 2);
         } catch (err) {
-            output.textContent = 'Error executing scrape: ' + err.message;
+            output.textContent = 'EXECUTION ERROR: ' + err.message;
         } finally {
             btn.disabled = false;
-            btn.textContent = 'Launch Automated Crawler';
+            btn.textContent = 'Initialize Crawler Telemetry';
         }
     });
 
@@ -137,7 +147,7 @@
         const list = document.getElementById('dorkList');
 
         resBox.style.display = 'block';
-        list.innerHTML = 'Generating compliance dorks...';
+        list.innerHTML = '<span class="mono" style="font-size: 0.8125rem; color: var(--text-muted);">SYNTHESIZING OPERATORS...</span>';
 
         try {
             const res = await fetch('/tools/profile_auth/api/dork', {
@@ -149,24 +159,24 @@
             list.innerHTML = '';
             data.generated_operators.forEach(op => {
                 const item = document.createElement('div');
-                item.style.padding = '0.75rem';
-                item.style.background = '#f1f5f9';
-                item.style.borderRadius = '6px';
+                item.style.padding = '1rem 1.25rem';
+                item.style.backgroundColor = 'var(--bg)';
+                item.style.border = '1px solid var(--border)';
                 item.style.display = 'flex';
                 item.style.justifyContent = 'space-between';
                 item.style.alignItems = 'center';
 
                 const googleUrl = 'https://www.google.com/search?q=' + encodeURIComponent(op);
                 item.innerHTML = `
-                    <code style="color: #1e293b; font-size: 0.9rem;">${op}</code>
-                    <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary btn-sm" style="margin-left: 1rem;">
-                        Search Google &nearr;
+                    <code class="mono" style="color: var(--text-primary); font-size: 0.8125rem;">${op}</code>
+                    <a href="${googleUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-subtle btn-sm" style="margin-left: 1.5rem;">
+                        Search &nearr;
                     </a>
                 `;
                 list.appendChild(item);
             });
         } catch (err) {
-            list.innerHTML = 'Failed to generate queries: ' + err.message;
+            list.innerHTML = '<span class="mono" style="color: var(--status-error);">ERROR GENERATING SYNTAX: ' + err.message + '</span>';
         }
     });
 </script>

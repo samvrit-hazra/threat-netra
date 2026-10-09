@@ -1,8 +1,44 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Feed Monitor - Threat Netra{% endblock %}
+{% block title %}Feed Monitoring - Threat Netra{% endblock %}
 
 {% block content %}
-    <h1>Web / Social Media Feed Monitor</h1>
-    <p>Monitoring active threat feeds...</p>
+<div class="tool-container reveal-fade">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 2rem; padding-bottom: 1.5rem; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 1rem;">
+        <div>
+            <span class="eyebrow">MODULE // REAL-TIME INGESTION</span>
+            <h2 style="margin: 0; font-size: 1.85rem;">Web & Social Media Feed Monitor</h2>
+            <p style="margin: 0.25rem 0 0 0; color: var(--text-muted); font-size: 0.875rem;">
+                Autonomous multi-vector intelligence monitoring, event triage, and GIS threat telemetry.
+            </p>
+        </div>
+        <div>
+            <a href="/dashboard" class="btn btn-subtle btn-sm">&larr; Return to Dashboard</a>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+            <div>
+                <span class="eyebrow" style="color: var(--status-success);">INGESTION ACTIVE // 24-7 SURVEILLANCE</span>
+                <h3 style="margin: 0;">Multi-Source Feed Ingestion Cluster</h3>
+            </div>
+            <span class="badge badge-status-live">TELEMETRY LINK // ESTABLISHED</span>
+        </div>
+        <div class="panel-body">
+            <p style="margin-bottom: 2rem;">
+                Continuous pipeline ingesting real-world threat alerts, geopolitical crisis markers, data leak indexes, and cyber attack indicators. Scenarios are evaluated against user-defined threshold matrices.
+            </p>
+
+            <div style="background-color: var(--bg); border: 1px solid var(--border); padding: 1.5rem;">
+                <span class="eyebrow">ACTIVE INGESTION STREAMS</span>
+                <div class="mono" style="font-size: 0.8125rem; color: var(--text-secondary); line-height: 2;">
+                    <div>&bull; [INTEL/OSINT] Global Conflict & Incident RSS Stream &mdash; <span style="color: var(--status-success);">CONNECTED</span></div>
+                    <div>&bull; [TELECOM/DARKNET] Paste & Breach Dump Crawler Matrix &mdash; <span style="color: var(--status-success);">CONNECTED</span></div>
+                    <div>&bull; [GIS/DISASTER] OpenStreetMap Spatial Threat Vector &mdash; <span style="color: var(--status-success);">CONNECTED</span></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}

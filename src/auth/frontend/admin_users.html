@@ -1,99 +1,101 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Owner Access Management - Threat Netra{% endblock %}
+{% block title %}Personnel Clearance Control - Threat Netra{% endblock %}
 
 {% block content %}
-<div class="admin-container">
+<div class="admin-container reveal-fade">
     <div class="admin-header">
         <div>
-            <h2>Threat Netra - User Approval & Role Management</h2>
-            <p class="admin-subtitle">Administrator & Platform Owner Control Console</p>
+            <span class="eyebrow">ADMINISTRATIVE CONSOLE // CLEARANCE MATRIX</span>
+            <h2 style="margin: 0; font-size: 2rem;">Personnel Review & Role Allocation</h2>
+            <p class="admin-subtitle">Root governance interface for operator credential approvals and capability provisioning.</p>
         </div>
-        <div class="admin-user-info">
-            <span class="badge badge-admin">Logged in as: {{ current_user.email }} (Owner)</span>
+        <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <span class="badge badge-admin">OPERATOR // {{ current_user.email }}</span>
             <span class="badge badge-status-{{ 'live' if is_supabase_live else 'mock' }}">
-                Mode: {{ 'Supabase Cloud Live' if is_supabase_live else 'Local Development Store' }}
+                DB // {{ 'SUPABASE CLOUD LIVE' if is_supabase_live else 'LOCAL STORE' }}
             </span>
         </div>
     </div>
 
-    <!-- Metrics Cards -->
+    <!-- METRICS GRID -->
     <div class="stats-grid">
-        <div class="stat-card stat-pending">
-            <div class="stat-num">{{ pending_users|length }}</div>
-            <div class="stat-label">Pending Approval</div>
+        <div class="stat-card">
+            <div class="stat-num" style="color: var(--status-warning);">{{ pending_users|length }}</div>
+            <div class="stat-label">Pending Verification</div>
         </div>
-        <div class="stat-card stat-gov">
-            <div class="stat-num">{{ approved_gov|length }}</div>
-            <div class="stat-label">Governmental Users (Scraping)</div>
+        <div class="stat-card">
+            <div class="stat-num" style="color: var(--status-gov);">{{ approved_gov|length }}</div>
+            <div class="stat-label">Tier 01: Governmental (Scraping)</div>
         </div>
-        <div class="stat-card stat-normal">
-            <div class="stat-num">{{ approved_normal|length }}</div>
-            <div class="stat-label">Normal Users (OSINT Dorks)</div>
+        <div class="stat-card">
+            <div class="stat-num" style="color: var(--accent);">{{ approved_normal|length }}</div>
+            <div class="stat-label">Tier 02: Standard (OSINT Dorks)</div>
         </div>
-        <div class="stat-card stat-total">
+        <div class="stat-card">
             <div class="stat-num">{{ admins|length }}</div>
-            <div class="stat-label">Admins / Owners</div>
+            <div class="stat-label">System Administrators</div>
         </div>
     </div>
 
     <!-- SECTION 1: PENDING APPROVAL REQUESTS -->
-    <div class="panel panel-pending">
+    <div class="panel" style="border-top: 2px solid var(--status-warning);">
         <div class="panel-header">
-            <h3>⏳ Pending Signups Requiring Your Approval ({{ pending_users|length }})</h3>
-            <p>New users cannot access dashboard tools until you approve and assign them a tier.</p>
+            <span class="eyebrow" style="color: var(--status-warning);">QUEUE // PENDING APPLICANTS</span>
+            <h3>Access Requests Awaiting Clearance ({{ pending_users|length }})</h3>
+            <p>New registrations are isolated from dashboard intelligence until assigned an explicit capability tier.</p>
         </div>
 
         {% if pending_users|length == 0 %}
             <div class="empty-state">
-                <p>No new account requests pending approval. All caught up!</p>
+                NO PENDING APPLICANTS IN QUEUE. ALL SESSIONS VALIDATED.
             </div>
         {% else %}
             <div class="table-responsive">
                 <table class="user-table">
                     <thead>
                         <tr>
-                            <th>Applicant</th>
-                            <th>Email</th>
-                            <th>Status</th>
-                            <th>Approve & Assign Role</th>
-                            <th>Reject</th>
+                            <th>APPLICANT / DESIGNATION</th>
+                            <th>IDENTIFIER / EMAIL</th>
+                            <th>STATUS</th>
+                            <th>ALLOCATE CLEARANCE</th>
+                            <th>ACTION</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in pending_users %}
                         <tr>
                             <td>
-                                <strong>{{ user.full_name or 'Anonymous Applicant' }}</strong>
-                                <div class="subtext">ID: {{ user.id }}</div>
+                                <strong>{{ user.full_name or 'Unspecified Operative' }}</strong>
+                                <div class="subtext">UID: {{ user.id }}</div>
                             </td>
-                            <td>{{ user.email }}</td>
+                            <td class="mono" style="font-size: 0.8125rem;">{{ user.email }}</td>
                             <td>
-                                <span class="badge badge-pending">Pending Review</span>
+                                <span class="badge badge-pending">PENDING</span>
                             </td>
                             <td>
                                 <div class="action-btn-group">
                                     <!-- Approve as Governmental User -->
                                     <form method="POST" action="/admin/users/{{ user.id }}/approve" style="display:inline;">
                                         <input type="hidden" name="role" value="governmental_user">
-                                        <button type="submit" class="btn btn-gov btn-sm" title="Grant automated social scraping access">
-                                            🏛️ Approve Governmental
+                                        <button type="submit" class="btn btn-gov btn-sm" title="Grant automated scraping capability">
+                                            Approve Gov Tier
                                         </button>
                                     </form>
 
                                     <!-- Approve as Normal User -->
                                     <form method="POST" action="/admin/users/{{ user.id }}/approve" style="display:inline;">
                                         <input type="hidden" name="role" value="normal_user">
-                                        <button type="submit" class="btn btn-normal btn-sm" title="Grant OSINT search dorks access">
-                                            🔎 Approve Normal
+                                        <button type="submit" class="btn btn-normal btn-sm" title="Grant OSINT search dorks capability">
+                                            Approve Standard
                                         </button>
                                     </form>
                                 </div>
                             </td>
                             <td>
                                 <form method="POST" action="/admin/users/{{ user.id }}/reject" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Reject access for this user?')">
-                                        ⛔ Reject
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Decline clearance for this applicant?')">
+                                        Decline
                                     </button>
                                 </form>
                             </td>
@@ -106,45 +108,46 @@
     </div>
 
     <!-- SECTION 2: APPROVED GOVERNMENTAL USERS -->
-    <div class="panel">
+    <div class="panel" style="border-top: 2px solid var(--status-gov);">
         <div class="panel-header">
-            <h3>🏛️ Approved Governmental Users ({{ approved_gov|length }})</h3>
-            <p>High-privilege tier: Granted direct automated social media scraping for deep fake account detection.</p>
+            <span class="eyebrow" style="color: var(--status-gov);">ACTIVE ROSTER // TIER 01</span>
+            <h3>Governmental Clearance Operatives ({{ approved_gov|length }})</h3>
+            <p>Elevated clearance: Automated crawlers enabled for social graph extraction and bot telemetry.</p>
         </div>
 
         {% if approved_gov|length == 0 %}
-            <div class="empty-state"><p>No governmental users currently active.</p></div>
+            <div class="empty-state">NO GOVERNMENTAL OPERATIVES REGISTERED.</div>
         {% else %}
             <div class="table-responsive">
                 <table class="user-table">
                     <thead>
                         <tr>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Capabilities</th>
-                            <th>Change Role</th>
-                            <th>Revoke</th>
+                            <th>OPERATIVE</th>
+                            <th>IDENTIFIER / EMAIL</th>
+                            <th>PROVISIONED CAPABILITY</th>
+                            <th>REALLOCATE</th>
+                            <th>REVOCATION</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in approved_gov %}
                         <tr>
                             <td><strong>{{ user.full_name or user.email }}</strong></td>
-                            <td>{{ user.email }}</td>
+                            <td class="mono" style="font-size: 0.8125rem;">{{ user.email }}</td>
                             <td>
-                                <span class="badge badge-gov">Direct Scraping Enabled</span>
+                                <span class="badge badge-gov">AUTOMATED SCRAPING ENABLED</span>
                             </td>
                             <td>
                                 <form method="POST" action="/admin/users/{{ user.id }}/role" style="display:inline;">
                                     <input type="hidden" name="role" value="normal_user">
-                                    <button type="submit" class="btn btn-outline btn-sm">
-                                        Downgrade to Normal Tier
+                                    <button type="submit" class="btn btn-subtle btn-sm">
+                                        Downgrade to Standard
                                     </button>
                                 </form>
                             </td>
                             <td>
                                 <form method="POST" action="/admin/users/{{ user.id }}/reject" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Revoke access for this user?')">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Revoke clearance for this operative?')">
                                         Revoke
                                     </button>
                                 </form>
@@ -158,45 +161,46 @@
     </div>
 
     <!-- SECTION 3: APPROVED NORMAL USERS -->
-    <div class="panel">
+    <div class="panel" style="border-top: 2px solid var(--accent);">
         <div class="panel-header">
-            <h3>🔎 Approved Normal Users ({{ approved_normal|length }})</h3>
-            <p>Standard tier: Utilizes OSINT web search operators (dorking) for public footprint investigation.</p>
+            <span class="eyebrow" style="color: var(--accent);">ACTIVE ROSTER // TIER 02</span>
+            <h3>Standard OSINT Operatives ({{ approved_normal|length }})</h3>
+            <p>Standard clearance: Direct automated scraping restricted. Search engine operator dorking enabled.</p>
         </div>
 
         {% if approved_normal|length == 0 %}
-            <div class="empty-state"><p>No normal users currently active.</p></div>
+            <div class="empty-state">NO STANDARD OPERATIVES REGISTERED.</div>
         {% else %}
             <div class="table-responsive">
                 <table class="user-table">
                     <thead>
                         <tr>
-                            <th>User</th>
-                            <th>Email</th>
-                            <th>Capabilities</th>
-                            <th>Change Role</th>
-                            <th>Revoke</th>
+                            <th>OPERATIVE</th>
+                            <th>IDENTIFIER / EMAIL</th>
+                            <th>PROVISIONED CAPABILITY</th>
+                            <th>REALLOCATE</th>
+                            <th>REVOCATION</th>
                         </tr>
                     </thead>
                     <tbody>
                         {% for user in approved_normal %}
                         <tr>
                             <td><strong>{{ user.full_name or user.email }}</strong></td>
-                            <td>{{ user.email }}</td>
+                            <td class="mono" style="font-size: 0.8125rem;">{{ user.email }}</td>
                             <td>
-                                <span class="badge badge-normal">OSINT Web Search Only</span>
+                                <span class="badge badge-normal">OSINT SEARCH ONLY</span>
                             </td>
                             <td>
                                 <form method="POST" action="/admin/users/{{ user.id }}/role" style="display:inline;">
                                     <input type="hidden" name="role" value="governmental_user">
                                     <button type="submit" class="btn btn-gov btn-sm">
-                                        Promote to Governmental
+                                        Promote to Gov Tier
                                     </button>
                                 </form>
                             </td>
                             <td>
                                 <form method="POST" action="/admin/users/{{ user.id }}/reject" style="display:inline;">
-                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Revoke access for this user?')">
+                                    <button type="submit" class="btn btn-danger btn-sm" onclick="return confirm('Revoke clearance for this operative?')">
                                         Revoke
                                     </button>
                                 </form>
@@ -211,34 +215,35 @@
 
     <!-- SECTION 4: REJECTED / SUSPENDED -->
     {% if rejected_users|length > 0 %}
-    <div class="panel">
+    <div class="panel" style="border-top: 2px solid var(--status-error);">
         <div class="panel-header">
-            <h3>⛔ Rejected / Suspended Accounts ({{ rejected_users|length }})</h3>
+            <span class="eyebrow" style="color: var(--status-error);">RESTRICTED // SUSPENDED SESSIONS</span>
+            <h3>Revoked & Declined Accounts ({{ rejected_users|length }})</h3>
         </div>
         <div class="table-responsive">
             <table class="user-table">
                 <thead>
                     <tr>
-                        <th>User</th>
-                        <th>Email</th>
-                        <th>Status</th>
-                        <th>Re-approve</th>
+                        <th>IDENTITY</th>
+                        <th>IDENTIFIER / EMAIL</th>
+                        <th>STATUS</th>
+                        <th>RE-PROVISION</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user in rejected_users %}
                     <tr>
                         <td><strong>{{ user.full_name or user.email }}</strong></td>
-                        <td>{{ user.email }}</td>
-                        <td><span class="badge badge-rejected">Access Denied</span></td>
+                        <td class="mono" style="font-size: 0.8125rem;">{{ user.email }}</td>
+                        <td><span class="badge badge-rejected">ACCESS REVOKED</span></td>
                         <td>
                             <form method="POST" action="/admin/users/{{ user.id }}/approve" style="display:inline;">
                                 <input type="hidden" name="role" value="normal_user">
-                                <button type="submit" class="btn btn-normal btn-sm">Re-Approve (Normal)</button>
+                                <button type="submit" class="btn btn-normal btn-sm">Restore (Standard)</button>
                             </form>
-                            <form method="POST" action="/admin/users/{{ user.id }}/approve" style="display:inline; margin-left: 5px;">
+                            <form method="POST" action="/admin/users/{{ user.id }}/approve" style="display:inline; margin-left: 6px;">
                                 <input type="hidden" name="role" value="governmental_user">
-                                <button type="submit" class="btn btn-gov btn-sm">Re-Approve (Governmental)</button>
+                                <button type="submit" class="btn btn-gov btn-sm">Restore (Gov)</button>
                             </form>
                         </td>
                     </tr>

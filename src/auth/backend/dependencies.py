@@ -35,19 +35,24 @@ async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     if not token:
         return None
 
-    if not is_supabase_configured():
-        return get_user_from_mock_token(token)
+    # If mock token or Supabase unconfigured, use mock store directly
+    if not is_supabase_configured() or token.startswith("mock-"):
+        mock_u = get_user_from_mock_token(token)
+        if mock_u:
+            return mock_u
+        if not is_supabase_configured():
+            return None
 
     try:
         supabase = get_supabase_client()
         admin_client = get_supabase_admin_client()
         if not supabase:
-            return None
+            return get_user_from_mock_token(token)
 
         # Verify access token with Supabase Auth
         user_response = supabase.auth.get_user(token)
         if not user_response or not user_response.user:
-            return None
+            return get_user_from_mock_token(token)
 
         auth_user = user_response.user
         user_id = str(auth_user.id)
@@ -88,7 +93,7 @@ async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
         }
     except Exception as e:
         logger.error(f"Error authenticating user via Supabase: {e}")
-        return None
+        return get_user_from_mock_token(token)
 
 async def require_approved_user(request: Request) -> Dict[str, Any]:
     """

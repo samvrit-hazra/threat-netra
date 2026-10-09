@@ -4,42 +4,95 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Threat Netra{% endblock %}</title>
-    <!-- Shared CSS for the whole project -->
+    
+    <!-- Google Fonts: Inter & JetBrains Mono -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+    
+    <!-- Design Tokens & Main Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', path='css/tokens.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', path='css/style.css') }}">
 </head>
 <body>
-    <!-- COMMON NAVIGATION BAR -->
-    <nav class="navbar">
-        <div class="logo">
-            <a href="/" style="color: #38bdf8; text-decoration: none; font-weight: bold;">Threat Netra</a>
+    <!-- FIXED TOP BAR -->
+    <header class="navbar" id="topNavbar">
+        <div class="navbar-inner">
+            <div class="logo">
+                <a href="/">Threat Netra</a>
+            </div>
+            <nav>
+                <ul class="nav-links">
+                    <li><a href="/">Home</a></li>
+                    <li><a href="/dashboard">Dashboard</a></li>
+                    {% if user and user.role == 'admin' %}
+                    <li><a href="/admin/users">Admin Control</a></li>
+                    {% endif %}
+                    {% if user %}
+                    <li class="nav-user-tag">{{ user.email }}</li>
+                    <li><a href="/auth/logout" class="btn btn-secondary btn-sm">Sign Out</a></li>
+                    {% else %}
+                    <li><a href="/auth/login" class="btn btn-secondary btn-sm">Sign In</a></li>
+                    {% endif %}
+                </ul>
+            </nav>
         </div>
-        <ul class="nav-links">
-            <li><a href="/">Home</a></li>
-            <li><a href="/dashboard">Dashboard</a></li>
-            {% if user and user.role == 'admin' %}
-            <li><a href="/admin/users" style="color: #a78bfa; font-weight: 600;">👑 Admin Approval</a></li>
-            {% endif %}
-            {% if user %}
-            <li><span style="font-size: 0.85rem; color: #94a3b8;">{{ user.email }}</span></li>
-            <li><a href="/auth/logout" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #475569;">Logout</a></li>
-            {% else %}
-            <li><a href="/auth/login" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #475569;">Sign In</a></li>
-            {% endif %}
-        </ul>
-    </nav>
+    </header>
 
-    <!-- UNIQUE PAGE CONTENT GOES HERE -->
-    <main class="container">
-        {% block content %}
-        {% endblock %}
+    <!-- MAIN PAGE CONTENT -->
+    <main class="page-content">
+        <div class="container">
+            {% block content %}
+            {% endblock %}
+        </div>
     </main>
 
-    <!-- COMMON FOOTER -->
+    <!-- AUSTERE TECHNICAL FOOTER -->
     <footer>
-        <p>&copy; 2026 Threat Netra - Cyber & Real-World Intelligence Platform.</p>
+        <div class="container">
+            <div class="footer-inner">
+                <div class="footer-col" style="max-width: 320px;">
+                    <div class="logo" style="margin-bottom: 1rem;">
+                        <a href="/">Threat Netra</a>
+                    </div>
+                    <p style="font-size: 0.8125rem; color: var(--text-muted); line-height: 1.6; margin: 0;">
+                        Integrated multi-vector intelligence infrastructure for cyber, kinetic, and real-world threat monitoring.
+                    </p>
+                </div>
+                <div class="footer-col">
+                    <h4>Operations</h4>
+                    <ul>
+                        <li><a href="/dashboard">Dashboard</a></li>
+                        <li><a href="/tools/feed_monitor">Feed Monitoring</a></li>
+                        <li><a href="/tools/profile_auth">Account Authenticity</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Clearance</h4>
+                    <ul>
+                        <li><a href="/auth/login">Console Access</a></li>
+                        <li><a href="/auth/signup">Apply for Access</a></li>
+                        {% if user and user.role == 'admin' %}
+                        <li><a href="/admin/users">Personnel Approval</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>System</h4>
+                    <ul>
+                        <li><span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">STATUS // OPERATIONAL</span></li>
+                        <li><span class="mono" style="font-size: 0.75rem; color: var(--text-muted);">TIER // DEFENSE GRADE</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <div>&copy; 2026 Threat Netra. All rights reserved. Restrained intelligence software.</div>
+                <div>SYS.LOC // ASIA-SOUTH-1 &bull; PROTOCOL // REST+TLS</div>
+            </div>
+        </div>
     </footer>
     
-    <!-- Shared JS -->
+    <!-- Shared Technical JS -->
     <script src="{{ url_for('static', path='js/main.js') }}"></script>
 </body>
 </html>

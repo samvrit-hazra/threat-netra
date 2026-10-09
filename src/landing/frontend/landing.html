@@ -1,9 +1,72 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Home - Threat Netra{% endblock %}
+{% block title %}Threat Netra - Defense & Data Intelligence Infrastructure{% endblock %}
 
 {% block content %}
-    <h1>Welcome to Threat Netra</h1>
-    <p>An all-in-one threat-intelligence platform.</p>
-    <a href="/dashboard" class="button">Go to Dashboard</a>
+<div class="hero-section">
+    <div class="hero-grid-bg"></div>
+
+    <div class="hero-content reveal-fade">
+        <span class="eyebrow">INTELLIGENCE INFRASTRUCTURE // V2.6</span>
+        <h1 class="hero-headline">Decisions at the speed of threat.</h1>
+        <p class="hero-lead">
+            An all-in-one threat-intelligence platform uniting cyber defense, data breach telemetry, and geopolitical risk monitoring into a single unified operational picture.
+        </p>
+        <div class="hero-actions">
+            <a href="/dashboard" class="btn btn-primary">Enter Dashboard &rarr;</a>
+            {% if not user %}
+            <a href="/auth/signup" class="btn btn-secondary">Request Clearance</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="hero-scroll-tag">
+        INDEX // 01 &mdash; ARCHITECTURE OVERVIEW
+    </div>
+</div>
+
+<!-- TECHNICAL CAPABILITY MATRIX -->
+<section class="spec-section">
+    <div style="margin-bottom: 3.5rem;">
+        <span class="eyebrow">OPERATIONAL CAPABILITIES</span>
+        <h2>Mission-Critical Tool Suites</h2>
+        <p style="max-width: 640px;">
+            Engineered as modular intelligence vectors. Deployable independently or fused for multi-domain threat correlation.
+        </p>
+    </div>
+
+    <div class="spec-grid">
+        <div class="spec-item">
+            <span class="spec-idx">01 // TELEMETRY</span>
+            <h3>Feed Monitoring & Scenario Alerting</h3>
+            <p>
+                Continuous ingestion across open-source feeds, dark web forums, and GIS coordinate feeds. Autonomous correlation with user-defined operational triggers.
+            </p>
+        </div>
+
+        <div class="spec-item">
+            <span class="spec-idx">02 // FORENSICS</span>
+            <h3>Account Authenticity & Synthetic Identity Detection</h3>
+            <p>
+                Multi-tier profile inspection. Gated automated scraping for high-privilege governmental analysts; legal OSINT search syntax for compliant investigation.
+            </p>
+        </div>
+
+        <div class="spec-item">
+            <span class="spec-idx">03 // LEGAL ANALYSIS</span>
+            <h3>Contract & Document Intelligence</h3>
+            <p>
+                Machine-guided clause decomposition to isolate exploitative loopholes, jurisdictional ambiguities, and asymmetric liabilities.
+            </p>
+        </div>
+
+        <div class="spec-item">
+            <span class="spec-idx">04 // TELEMETRY AUDIT</span>
+            <h3>AI Network & OS Log Analyzer</h3>
+            <p>
+                Heuristic and AI-driven telemetry evaluation. Continuous packet and event trace analysis to uncover stealth persistence mechanisms.
+            </p>
+        </div>
+    </div>
+</section>
 {% endblock %}

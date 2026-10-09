@@ -3,7 +3,6 @@ from typing import Optional
 from fastapi import APIRouter, Request, Response, Form, HTTPException, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel
 
 from src.auth.backend.config import (
     SUPABASE_URL,
@@ -19,7 +18,6 @@ from src.auth.backend.mock_store import (
     create_mock_user,
     find_mock_user_by_email,
     create_mock_session,
-    MOCK_USERS,
 )
 
 logger = logging.getLogger("threatnetra.auth")
@@ -27,17 +25,11 @@ logger = logging.getLogger("threatnetra.auth")
 router = APIRouter(prefix="/auth", tags=["auth"])
 templates = Jinja2Templates(directory="src")
 
-class SessionPayload(BaseModel):
-    access_token: str
-    refresh_token: Optional[str] = None
-
 @router.get("/config")
 async def get_auth_config():
-    """Returns public configuration needed by frontend Supabase JS."""
+    """Returns public configuration for demo and status checks."""
     return {
         "configured": is_supabase_configured(),
-        "supabase_url": SUPABASE_URL if is_supabase_configured() else "",
-        "supabase_key": SUPABASE_KEY if is_supabase_configured() else "",
         "demo_email": DEMO_EMAIL,
         "demo_password": DEMO_PASSWORD,
     }
@@ -90,35 +82,6 @@ async def pending_page(request: Request):
         }
     )
 
-@router.get("/callback", response_class=HTMLResponse)
-async def callback_page(request: Request):
-    """Client-side OAuth callback page that captures Google OAuth tokens."""
-    return templates.TemplateResponse(
-        request=request,
-        name="auth/frontend/callback.html",
-        context={}
-    )
-
-@router.post("/session")
-async def set_session(payload: SessionPayload, response: Response, request: Request):
-    """
-    Receives access_token from frontend (Supabase Auth / Google OAuth)
-    and sets an HTTP-only cookie.
-    """
-    token = payload.access_token
-    # Set cookie for 14 days
-    res = JSONResponse({"status": "ok"})
-    res.set_cookie(
-        key="sb_access_token",
-        value=token,
-        httponly=True,
-        samesite="lax",
-        secure=False,  # Set to True in HTTPS production
-        max_age=14 * 24 * 3600,
-        path="/"
-    )
-    return res
-
 @router.post("/login")
 async def process_login(
     email: str = Form(...),
@@ -135,14 +98,15 @@ async def process_login(
             })
             token = auth_res.session.access_token
 
-            # Check profile status
+            # Check profile status in public.profiles
             admin_client = get_supabase_admin_client()
-            profile_res = admin_client.table("profiles").select("*").eq("id", str(auth_res.user.id)).execute()
             status = "pending_approval"
             role = None
-            if profile_res.data:
-                status = profile_res.data[0].get("status", "pending_approval")
-                role = profile_res.data[0].get("role")
+            if admin_client:
+                profile_res = admin_client.table("profiles").select("*").eq("id", str(auth_res.user.id)).execute()
+                if profile_res.data:
+                    status = profile_res.data[0].get("status", "pending_approval")
+                    role = profile_res.data[0].get("role")
 
             redirect_target = "/dashboard" if status == "approved" else "/auth/pending"
             response = RedirectResponse(url=redirect_target, status_code=303)
@@ -188,19 +152,32 @@ async def process_signup(
     email = email.strip().lower()
 
     if is_supabase_configured():
+        admin_client = get_supabase_admin_client()
         supabase = get_supabase_client()
         try:
-            auth_res = supabase.auth.sign_up({
-                "email": email,
-                "password": password,
-                "options": {
-                    "data": {
-                        "full_name": full_name
-                    }
-                }
-            })
-            token = auth_res.session.access_token if auth_res.session else None
-            # Redirect to pending approval notice
+            token = None
+            if admin_client:
+                # Register user with email verified
+                created = admin_client.auth.admin.create_user({
+                    "email": email,
+                    "password": password,
+                    "email_confirm": True,
+                    "user_metadata": {"full_name": full_name}
+                })
+                # Sign in immediately to set session cookie
+                auth_res = supabase.auth.sign_in_with_password({
+                    "email": email,
+                    "password": password
+                })
+                token = auth_res.session.access_token if auth_res.session else None
+            else:
+                auth_res = supabase.auth.sign_up({
+                    "email": email,
+                    "password": password,
+                    "options": {"data": {"full_name": full_name}}
+                })
+                token = auth_res.session.access_token if auth_res.session else None
+
             response = RedirectResponse(url="/auth/pending?new=1", status_code=303)
             if token:
                 response.set_cookie(
@@ -244,17 +221,34 @@ async def demo_login():
         supabase = get_supabase_client()
         admin_client = get_supabase_admin_client()
         try:
-            # Attempt login with demo credentials
+            # Ensure demo account exists in Supabase and password matches
+            if admin_client:
+                users = admin_client.auth.admin.list_users()
+                demo_user = next((u for u in users if u.email.lower() == DEMO_EMAIL.lower()), None)
+                if demo_user:
+                    admin_client.auth.admin.update_user_by_id(demo_user.id, {
+                        "password": DEMO_PASSWORD,
+                        "email_confirm": True
+                    })
+                else:
+                    admin_client.auth.admin.create_user({
+                        "email": DEMO_EMAIL,
+                        "password": DEMO_PASSWORD,
+                        "email_confirm": True,
+                        "user_metadata": {"full_name": "Demo Evaluator"}
+                    })
+
             auth_res = supabase.auth.sign_in_with_password({
                 "email": DEMO_EMAIL,
                 "password": DEMO_PASSWORD
             })
             token = auth_res.session.access_token
-            # Ensure demo account has governmental_user role and approved status
+
             if admin_client:
                 admin_client.table("profiles").upsert({
                     "id": str(auth_res.user.id),
                     "email": DEMO_EMAIL,
+                    "full_name": "Demo Evaluator",
                     "role": "governmental_user",
                     "status": "approved"
                 }).execute()
@@ -273,7 +267,7 @@ async def demo_login():
         except Exception as e:
             logger.warning(f"Supabase demo login error (falling back to mock session): {e}")
 
-    # Fallback mock demo login
+    # Fallback guaranteed mock demo login
     token = "mock-jwt-demo"
     response = RedirectResponse(url="/dashboard", status_code=303)
     response.set_cookie(
@@ -303,5 +297,5 @@ async def get_me(request: Request):
 async def logout(response: Response):
     """Log out user and clear authentication cookies."""
     redirect = RedirectResponse(url="/auth/login", status_code=303)
-    redirect.delete_cookie(key="sb_access_token", path="/")
+    redirect.delete_cookie(key="sb_access_token", path="/" )
     return redirect
