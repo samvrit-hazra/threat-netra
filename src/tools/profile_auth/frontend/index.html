@@ -701,13 +701,6 @@ letcurrentActiveTwitterHandle="";
                         (Unrelated search fallbacks and external web recommendations were excluded by domain boundary filter)
                     </span>
                 </div>`;
-            rssItemsList.innerHTML = `
-                <div style="padding: 1.25rem; color: var(--text-muted); font-size: 0.8125rem; text-align: center; background: #050505; border: 1px dashed var(--border);">
-                    No indexed entries returned on target domain <strong>${escapeHtml(data.domain)}</strong> for this identifier.<br>
-                    <span style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.25rem; display: inline-block;">
-                        (Unrelated search fallbacks and external web recommendations were excluded by domain boundary filter)
-                    </span>
-                </div>`;
         } else {
             results.forEach((item, index) => {
                 const card = document.createElement("div");
@@ -765,7 +758,7 @@ letcurrentActiveTwitterHandle="";
         btn.disabled = true;
         btn.textContent = 'EXECUTING OSINT & CRAWLER...';
         resBox.style.display = 'block';
-        output.textContent = 'CONNECTING TO SCRAPING CLUSTER & WAYBACKWAYBACK ARCHIVEARCHIVE RECONNAISSANCERECONNAISSANCE...\nRESOLVING ENTITY GRAPH...\nANALYZING BOT VECTORS...';
+        output.textContent = 'CONNECTING TO SCRAPING CLUSTER & WAYBACK ARCHIVE RECONNAISSANCE...\nRESOLVING ENTITY GRAPH...\nANALYZING BOT VECTORS...';
 
         try {
             const res = await fetch('/tools/profile_auth/api/scrape', {
