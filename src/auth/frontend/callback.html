@@ -1,0 +1,92 @@
+{% extends "shared/frontend/base.html" %}
+
+{% block title %}Authenticating - Threat Netra{% endblock %}
+
+{% block content %}
+<div class="auth-container text-center">
+    <div class="status-icon icon-pending">🔄</div>
+    <h2>Authenticating...</h2>
+    <p id="callbackStatus">Completing Google authentication and verifying your credentials...</p>
+    <div class="loading-spinner"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+    async function processOAuthCallback() {
+        const statusEl = document.getElementById('callbackStatus');
+
+        try {
+            // Fetch Supabase configuration
+            const cfgRes = await fetch('/auth/config');
+            const cfg = await cfgRes.json();
+
+            if (!cfg.configured || !cfg.supabase_url || !cfg.supabase_key) {
+                statusEl.textContent = 'Supabase credentials not configured on backend.';
+                return;
+            }
+
+            const supabaseClient = window.supabase.createClient(cfg.supabase_url, cfg.supabase_key);
+
+            // Supabase stores/exchanges session on hash
+            const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+            if (error || !session) {
+                // Check if tokens are in the hash fragment directly
+                const hash = window.location.hash.substring(1);
+                const params = new URLSearchParams(hash);
+                const accessToken = params.get('access_token');
+                const refreshToken = params.get('refresh_token');
+
+                if (accessToken) {
+                    await sendSessionToBackend(accessToken, refreshToken);
+                    return;
+                }
+
+                statusEl.textContent = 'Authentication session not found or expired. Redirecting to login...';
+                setTimeout(() => window.location.href = '/auth/login?error=OAuth+Authentication+Failed', 2000);
+                return;
+            }
+
+            await sendSessionToBackend(session.access_token, session.refresh_token);
+
+        } catch (err) {
+            console.error('OAuth callback error:', err);
+            statusEl.textContent = 'Error finalizing login: ' + err.message;
+        }
+    }
+
+    async function sendSessionToBackend(accessToken, refreshToken) {
+        const statusEl = document.getElementById('callbackStatus');
+        statusEl.textContent = 'Synchronizing security session with Threat Netra backend...';
+
+        const res = await fetch('/auth/session', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ access_token: accessToken, refresh_token: refreshToken })
+        });
+
+        if (!res.ok) {
+            statusEl.textContent = 'Failed to establish session on server.';
+            return;
+        }
+
+        // Check account approval status
+        const meRes = await fetch('/auth/me');
+        const meData = await meRes.json();
+
+        if (meData.authenticated && meData.user) {
+            if (meData.user.status === 'approved') {
+                statusEl.textContent = 'Authenticated successfully! Loading dashboard...';
+                window.location.href = '/dashboard';
+            } else {
+                statusEl.textContent = 'Registration received! Redirecting to pending review screen...';
+                window.location.href = '/auth/pending';
+            }
+        } else {
+            window.location.href = '/dashboard';
+        }
+    }
+
+    window.addEventListener('DOMContentLoaded', processOAuthCallback);
+</script>
+{% endblock %}

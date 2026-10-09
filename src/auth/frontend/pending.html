@@ -1,0 +1,92 @@
+{% extends "shared/frontend/base.html" %}
+
+{% block title %}Account Status - Threat Netra{% endblock %}
+
+{% block content %}
+<div class="auth-container pending-container">
+    {% if is_rejected %}
+        <div class="status-icon icon-rejected">⛔</div>
+        <h2>Access Request Denied</h2>
+        <p class="status-text">Your request for Threat Netra platform access has been rejected or suspended by the platform administrator.</p>
+        <div class="pending-info">
+            <p>If you believe this is in error, contact the platform owner at: <strong>{{ owner_email }}</strong></p>
+        </div>
+        <div class="action-buttons">
+            <a href="/auth/logout" class="btn btn-secondary btn-block">Sign Out</a>
+        </div>
+    {% else %}
+        <div class="status-icon icon-pending">⏳</div>
+        <h2>Approval Required</h2>
+        <p class="status-subtitle">Your account is currently under administrative review.</p>
+
+        <div class="status-badge-container">
+            <span class="badge badge-pending">Status: Pending Owner Approval</span>
+        </div>
+
+        {% if user %}
+        <div class="account-card">
+            <div><strong>Registered Email:</strong> {{ user.email }}</div>
+            {% if user.full_name %}
+            <div><strong>Name:</strong> {{ user.full_name }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        <div class="tier-info-box">
+            <h4>Access Tiers Granted by Administrator:</h4>
+            <div class="tier-card tier-gov">
+                <div class="tier-title">🏛️ Governmental User</div>
+                <div class="tier-desc">Direct automated social media scraping to extract profiles, followers, and posts for high-threat fake account & botnet detection.</div>
+            </div>
+            <div class="tier-card tier-norm">
+                <div class="tier-title">🔎 Normal User</div>
+                <div class="tier-desc">Targeted OSINT Google search operators (dorking) to identify digital footprints and public account indicators for legal compliance.</div>
+            </div>
+        </div>
+
+        <div class="pending-actions">
+            <button id="checkStatusBtn" class="btn btn-primary btn-block">Check Approval Status</button>
+            <div id="checkFeedback" class="status-feedback" style="display: none;"></div>
+            <a href="/auth/logout" class="btn btn-secondary btn-block" style="margin-top: 10px;">Sign Out</a>
+        </div>
+    {% endif %}
+</div>
+
+<script>
+    document.getElementById('checkStatusBtn')?.addEventListener('click', async () => {
+        const feedback = document.getElementById('checkFeedback');
+        feedback.style.display = 'block';
+        feedback.textContent = 'Checking current account status...';
+        feedback.className = 'status-feedback';
+
+        try {
+            const res = await fetch('/auth/me');
+            if (res.status === 401) {
+                feedback.textContent = 'Session expired. Please log in again.';
+                setTimeout(() => window.location.href = '/auth/login', 1500);
+                return;
+            }
+            const data = await res.json();
+            if (data.authenticated && data.user) {
+                if (data.user.status === 'approved') {
+                    feedback.className = 'status-feedback feedback-success';
+                    feedback.textContent = `Approved as ${data.user.role}! Redirecting to dashboard...`;
+                    setTimeout(() => window.location.href = '/dashboard', 1200);
+                } else if (data.user.status === 'rejected') {
+                    feedback.className = 'status-feedback feedback-error';
+                    feedback.textContent = 'Access request was rejected by admin.';
+                    setTimeout(() => window.location.reload(), 1500);
+                } else {
+                    feedback.className = 'status-feedback';
+                    feedback.textContent = 'Account is still pending approval. Please check again shortly.';
+                }
+            } else {
+                window.location.href = '/auth/login';
+            }
+        } catch (err) {
+            feedback.className = 'status-feedback feedback-error';
+            feedback.textContent = 'Network check failed. Please refresh the page.';
+        }
+    });
+</script>
+{% endblock %}

@@ -1,28 +1,21 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Login - Threat Netra{% endblock %}
+{% block title %}Sign Up - Threat Netra{% endblock %}
 
 {% block content %}
 <div class="auth-container">
     <div class="auth-header">
-        <h2>Threat Netra</h2>
-        <p class="auth-subtitle">Sign in to access cyber and real-world intelligence feeds</p>
+        <h2>Join Threat Netra</h2>
+        <p class="auth-subtitle">Apply for an analyst or operative account</p>
     </div>
 
-    <!-- Error / Success Alert Messages -->
+    <!-- Approval workflow explanation notice -->
+    <div class="info-banner">
+        <strong>Security Verification Notice:</strong>
+        <p>All new accounts require administrative approval by the website owner before dashboard tools are unlocked. You will be assigned either <em>Governmental User</em> or <em>Normal User</em> tier upon review.</p>
+    </div>
+
     <div id="authAlert" class="alert-box" style="display: none;"></div>
-
-    <!-- Quick Demo Account Evaluation Button -->
-    <div class="demo-box">
-        <div class="demo-header">
-            <span class="badge badge-demo">Evaluation Mode</span>
-            <strong>Quick Demo Access</strong>
-        </div>
-        <p class="demo-desc">Instant pre-configured access with full Governmental tier tools.</p>
-        <a href="/auth/demo-login" class="btn btn-secondary btn-block">Instant Demo Login</a>
-    </div>
-
-    <div class="divider"><span>OR SIGN IN WITH ACCOUNT</span></div>
 
     <!-- Google OAuth Button -->
     <button type="button" id="googleBtn" class="btn btn-google btn-block">
@@ -32,32 +25,36 @@
             <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707s.102-1.167.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
             <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
         </svg>
-        Continue with Google
+        Sign Up with Google
     </button>
 
-    <div class="divider"><span>OR EMAIL</span></div>
+    <div class="divider"><span>OR WITH EMAIL</span></div>
 
-    <!-- Email & Password Form -->
-    <form class="auth-form" id="loginForm" method="POST" action="/auth/login">
+    <!-- Sign up form -->
+    <form class="auth-form" id="signupForm" method="POST" action="/auth/signup">
+        <div class="form-group">
+            <label for="full_name">Full Name or Agency Name</label>
+            <input type="text" id="full_name" name="full_name" required placeholder="e.g. Maya Sharma / Agency X" autocomplete="name">
+        </div>
+
         <div class="form-group">
             <label for="email">Email Address</label>
-            <input type="email" id="email" name="email" required placeholder="analyst@threatnetra.gov" autocomplete="email">
+            <input type="email" id="email" name="email" required placeholder="name@organization.gov" autocomplete="email">
         </div>
         
         <div class="form-group">
-            <label for="password">Password</label>
-            <input type="password" id="password" name="password" required placeholder="Enter your password" autocomplete="current-password">
+            <label for="password">Password (min 6 characters)</label>
+            <input type="password" id="password" name="password" minlength="6" required placeholder="Create a strong password" autocomplete="new-password">
         </div>
         
-        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Sign In</button>
+        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Register Account</button>
     </form>
     
     <div class="auth-links">
-        <p>New to Threat Netra? <a href="/auth/signup">Create an Account</a></p>
+        <p>Already have an account? <a href="/auth/login">Sign In</a></p>
     </div>
 </div>
 
-<!-- Supabase Client JS (from CDN) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
     const urlParams = new URLSearchParams(window.location.search);
@@ -69,7 +66,6 @@
         alertBox.style.display = 'block';
     }
 
-    // Initialize Supabase if configured
     let supabaseClient = null;
     fetch('/auth/config')
         .then(res => res.json())
@@ -80,10 +76,9 @@
         })
         .catch(err => console.log('Auth config check:', err));
 
-    // Handle Google OAuth
     document.getElementById('googleBtn').addEventListener('click', async () => {
         if (!supabaseClient) {
-            alert('Supabase credentials are not configured in .env yet. Please configure SUPABASE_URL and SUPABASE_KEY to use Google OAuth, or use the Demo Login / mock email login below.');
+            alert('Supabase credentials are not configured in .env yet. Please configure SUPABASE_URL and SUPABASE_KEY to use Google OAuth.');
             return;
         }
 

@@ -10,11 +10,21 @@
 <body>
     <!-- COMMON NAVIGATION BAR -->
     <nav class="navbar">
-        <div class="logo">Threat Netra</div>
+        <div class="logo">
+            <a href="/" style="color: #38bdf8; text-decoration: none; font-weight: bold;">Threat Netra</a>
+        </div>
         <ul class="nav-links">
             <li><a href="/">Home</a></li>
             <li><a href="/dashboard">Dashboard</a></li>
-            <li><a href="/auth/login">Login</a></li>
+            {% if user and user.role == 'admin' %}
+            <li><a href="/admin/users" style="color: #a78bfa; font-weight: 600;">👑 Admin Approval</a></li>
+            {% endif %}
+            {% if user %}
+            <li><span style="font-size: 0.85rem; color: #94a3b8;">{{ user.email }}</span></li>
+            <li><a href="/auth/logout" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #475569;">Logout</a></li>
+            {% else %}
+            <li><a href="/auth/login" class="btn btn-outline btn-sm" style="color: #cbd5e1; border-color: #475569;">Sign In</a></li>
+            {% endif %}
         </ul>
     </nav>
 
@@ -26,7 +36,7 @@
 
     <!-- COMMON FOOTER -->
     <footer>
-        <p>&copy; 2026 Threat Netra. All rights reserved.</p>
+        <p>&copy; 2026 Threat Netra - Cyber & Real-World Intelligence Platform.</p>
     </footer>
     
     <!-- Shared JS -->

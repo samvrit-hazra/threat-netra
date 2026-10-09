@@ -3,9 +3,53 @@
 {% block title %}Dashboard - Threat Netra{% endblock %}
 
 {% block content %}
-    <h1>Dashboard</h1>
-    <p>Select a tool from the suite below:</p>
-    <ul>
-        <li><a href="/tools/feed_monitor">Web / Social Media Feed Monitoring</a></li>
-    </ul>
+<div class="dashboard-user-bar">
+    <div class="dashboard-user-meta">
+        <div>
+            <h2 style="margin: 0; font-size: 1.5rem;">Threat Intelligence Operations</h2>
+            <div style="font-size: 0.875rem; color: #64748b; margin-top: 0.25rem;">
+                Logged in as: <strong>{{ user.email }}</strong>
+            </div>
+        </div>
+    </div>
+    <div style="display: flex; gap: 0.75rem; align-items: center;">
+        {% if user.role == 'admin' %}
+            <span class="badge badge-admin">Role: Platform Owner / Admin</span>
+            <a href="/admin/users" class="btn btn-secondary btn-sm">👑 Manage Approvals</a>
+        {% elif user.role == 'governmental_user' %}
+            <span class="badge badge-gov">Role: Governmental Tier (High Privilege)</span>
+        {% else %}
+            <span class="badge badge-normal">Role: Normal User Tier (OSINT)</span>
+        {% endif %}
+        <a href="/auth/logout" class="btn btn-outline btn-sm">Sign Out</a>
+    </div>
+</div>
+
+<div class="tools-section">
+    <div style="margin-bottom: 1.5rem;">
+        <h3 style="margin: 0 0 0.35rem 0;">Operational Threat-Intel Suite</h3>
+        <p style="margin: 0; color: #64748b; font-size: 0.9rem;">
+            Select a specialized tool module below to initiate analysis. Tools dynamically adapt based on your verified access clearance.
+        </p>
+    </div>
+
+    <div class="tools-grid">
+        {% for tool in tools %}
+        <div class="tool-card">
+            <div class="tool-tier-badge">
+                <span class="badge {{ tool.badge_class }}">{{ tool.badge }}</span>
+            </div>
+            <h3>{{ tool.title }}</h3>
+            <p>{{ tool.description }}</p>
+            <div>
+                {% if tool.url != '#' %}
+                    <a href="{{ tool.url }}" class="btn btn-primary btn-sm">Launch Tool &rarr;</a>
+                {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled style="opacity: 0.6; cursor: not-allowed;">Module In Development</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
 {% endblock %}
