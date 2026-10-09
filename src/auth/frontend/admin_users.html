@@ -68,6 +68,13 @@
                             <td>
                                 <strong>{{ user.full_name or 'Unspecified Operative' }}</strong>
                                 <div class="subtext">UID: {{ user.id }}</div>
+                                {% if user.requested_role %}
+                                <div style="margin-top: 4px;">
+                                    <span class="badge {{ 'badge-gov' if user.requested_role == 'governmental_user' else 'badge-normal' }}" style="font-size: 9px; padding: 2px 6px;">
+                                        REQUESTED: {{ 'GOV TIER' if user.requested_role == 'governmental_user' else 'STANDARD USER' }}
+                                    </span>
+                                </div>
+                                {% endif %}
                             </td>
                             <td class="mono" style="font-size: 0.8125rem;">{{ user.email }}</td>
                             <td>

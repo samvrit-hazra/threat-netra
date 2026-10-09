@@ -1,19 +1,23 @@
 {% extends "shared/frontend/base.html" %}
 
-{% block title %}Apply for Clearance - Threat Netra{% endblock %}
+{% block title %}Create Account - Threat Netra{% endblock %}
 
 {% block content %}
 <div class="auth-container reveal-fade">
     <div class="auth-header">
-        <span class="eyebrow">REGISTRATION // ACCESS REQUEST</span>
-        <h2>Personnel Application</h2>
-        <p class="auth-subtitle">Register institutional identity to request operational clearance.</p>
+        <span class="eyebrow">REGISTRATION // NEW ACCOUNT</span>
+        <h2>Create an Account</h2>
+        <p class="auth-subtitle">Open to independent researchers, organizations, and governmental personnel.</p>
     </div>
 
-    <!-- Approval workflow explanation notice -->
+    <!-- Tier Overview Notice -->
     <div class="info-banner">
-        <strong>SECURITY PROTOCOL NOTICE</strong>
-        <p>All new credentials require administrative verification by the platform owner before tool suites unlock. You will be provisioned either <em>Governmental User</em> or <em>Normal User</em> tier upon review.</p>
+        <strong>ACCOUNT CLEARANCE TIERS</strong>
+        <p style="margin-bottom: 0.5rem;">Threat Netra supports two operational tiers:</p>
+        <ul style="margin: 0 0 0 1.25rem; font-size: 0.8125rem; color: var(--text-secondary); line-height: 1.5;">
+            <li><strong>Standard User:</strong> For researchers, legal analysts, and OSINT investigators. Includes feed monitoring, contract intelligence, and public search dorks.</li>
+            <li style="margin-top: 0.35rem;"><strong>Governmental User:</strong> For official agency operatives requiring direct automated scraping for synthetic identity & botnet forensics.</li>
+        </ul>
     </div>
 
     <div id="authAlert" class="alert-box alert-error" style="display: none;"></div>
@@ -21,25 +25,33 @@
     <!-- Sign up form -->
     <form class="auth-form" id="signupForm" method="POST" action="/auth/signup">
         <div class="form-group">
-            <label for="full_name">FULL NAME OR UNIT IDENTIFIER</label>
-            <input type="text" id="full_name" name="full_name" required placeholder="Operative / Unit Designation" autocomplete="name">
+            <label for="full_name">FULL NAME OR ORGANIZATION</label>
+            <input type="text" id="full_name" name="full_name" required placeholder="e.g. Maya Sharma / Threat Research Labs" autocomplete="name">
         </div>
 
         <div class="form-group">
-            <label for="email">INSTITUTIONAL EMAIL</label>
-            <input type="email" id="email" name="email" required placeholder="analyst@agency.gov" autocomplete="email">
+            <label for="email">EMAIL ADDRESS</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com or name@agency.gov" autocomplete="email">
         </div>
         
         <div class="form-group">
-            <label for="password">SECURITY PASSPHRASE (MIN 6 CHARACTERS)</label>
-            <input type="password" id="password" name="password" minlength="6" required placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" autocomplete="new-password">
+            <label for="requested_role">INTENDED USE / REQUESTED ACCESS TIER</label>
+            <select id="requested_role" name="requested_role" style="width: 100%; padding: 14px 16px; background-color: var(--bg); border: 1px solid var(--border); color: var(--text-primary); font-family: var(--font-sans); font-size: 0.9375rem;">
+                <option value="normal_user" selected>Standard User (OSINT Search, Feeds, Legal Intel)</option>
+                <option value="governmental_user">Governmental User (Agency Automated Scraping)</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="password">PASSWORD (MIN 6 CHARACTERS)</label>
+            <input type="password" id="password" name="password" minlength="6" required placeholder="Create a strong password" autocomplete="new-password">
         </div>
         
-        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Submit Application</button>
+        <button type="submit" id="submitBtn" class="btn btn-primary btn-block">Create Account</button>
     </form>
     
     <div class="auth-links">
-        <p>Already provisioned? <a href="/auth/login">Authenticate Session</a></p>
+        <p>Already have an account? <a href="/auth/login">Sign In</a></p>
     </div>
 </div>
 

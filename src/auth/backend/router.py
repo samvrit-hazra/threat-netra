@@ -147,7 +147,8 @@ async def process_login(
 async def process_signup(
     email: str = Form(...),
     password: str = Form(...),
-    full_name: str = Form(...)
+    full_name: str = Form(...),
+    requested_role: str = Form("normal_user")
 ):
     email = email.strip().lower()
 
@@ -162,7 +163,10 @@ async def process_signup(
                     "email": email,
                     "password": password,
                     "email_confirm": True,
-                    "user_metadata": {"full_name": full_name}
+                    "user_metadata": {
+                        "full_name": full_name,
+                        "requested_role": requested_role
+                    }
                 })
                 # Sign in immediately to set session cookie
                 auth_res = supabase.auth.sign_in_with_password({
@@ -174,7 +178,10 @@ async def process_signup(
                 auth_res = supabase.auth.sign_up({
                     "email": email,
                     "password": password,
-                    "options": {"data": {"full_name": full_name}}
+                    "options": {"data": {
+                        "full_name": full_name,
+                        "requested_role": requested_role
+                    }}
                 })
                 token = auth_res.session.access_token if auth_res.session else None
 
@@ -199,6 +206,7 @@ async def process_signup(
         return RedirectResponse(url="/auth/signup?error=Email+already+registered", status_code=303)
 
     user = create_mock_user(email=email, password=password, full_name=full_name)
+    user["requested_role"] = requested_role
     token = create_mock_session(user["id"])
     redirect_target = "/dashboard" if user.get("status") == "approved" else "/auth/pending?new=1"
     response = RedirectResponse(url=redirect_target, status_code=303)

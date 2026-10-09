@@ -21,6 +21,13 @@ async def get_all_profiles() -> List[Dict[str, Any]]:
         if admin_client:
             res = admin_client.table("profiles").select("*").order("created_at", desc=True).execute()
             if res.data is not None:
+                try:
+                    auth_users = {u.id: u.user_metadata for u in admin_client.auth.admin.list_users()}
+                    for p in res.data:
+                        meta = auth_users.get(p.get("id"), {})
+                        p["requested_role"] = meta.get("requested_role")
+                except Exception:
+                    pass
                 return res.data
     # Fallback to mock store
     return list(MOCK_USERS.values())
